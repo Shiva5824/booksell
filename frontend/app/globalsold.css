@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #09090b;
+  color: #fafafa;
+  overflow-x: hidden;
+  font-family: Inter, sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top right, rgba(91,140,255,0.15), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(124,92,255,0.12), transparent 40%);
+  z-index: -1;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/10 bg-white/[0.04] backdrop-blur-2xl shadow-soft;
+  }
+
+  .surface {
+    @apply bg-[#111318] border border-white/5 shadow-card;
+  }
+
+  .surface-elevated {
+    @apply bg-[#171A21] border border-white/10 shadow-card;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-primary px-5 py-3 font-semibold text-white transition-all duration-300 hover:scale-[1.03] hover:shadow-glow-primary active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 font-semibold text-white transition-all duration-300 hover:bg-white/[0.08] active:scale-[0.98];
+  }
+
+  .input-modern {
+    @apply rounded-xl border border-border bg-surface-secondary px-4 py-3 text-white placeholder:text-ink-tertiary focus:border-primary focus:ring-1 focus:ring-primary transition-smooth outline-none;
+  }
+
+  .input-base {
+    @apply w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3.5 text-base font-medium text-white placeholder:text-zinc-500 focus:border-primary/50 focus:bg-white/[0.05] focus:ring-4 focus:ring-primary/10 transition-all outline-none;
+  }
+
+  .card-hover {
+    @apply transition-all duration-500 hover:-translate-y-1 hover:shadow-soft-lg;
+  }
+}

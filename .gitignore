@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# builds
+frontend/.next/
+frontend/out/
+dist/
+build/
+
+# environment files with real secrets
+.env
+.env.*
+frontend/.env.local
+backend/.env
+
+# logs and local runtime files
+.codex-logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

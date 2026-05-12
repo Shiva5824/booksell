@@ -1,0 +1,26 @@
+{
+  "name": "sellchey",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Student marketplace MVP with Next.js frontend and Express backend.",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace frontend\" \"npm run dev --workspace backend\"",
+    "build": "npm run build --workspace frontend",
+    "start": "npm run start --workspace backend",
+    "lint": "npm run lint --workspace frontend",
+    "install:all": "npm install --workspaces"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "lenis": "^1.3.23",
+    "tailwind-merge": "^3.5.0"
+  }
+}
