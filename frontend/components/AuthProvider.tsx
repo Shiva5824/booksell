@@ -4,12 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User as FirebaseUser, onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
-interface User extends FirebaseUser {
-  displayName?: string | null;
-  email?: string | null;
-  photoURL?: string | null;
-  phoneNumber?: string | null;
-}
+type User = FirebaseUser;
 
 interface AuthContextType {
   user: User | null;

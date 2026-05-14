@@ -14,7 +14,9 @@ import {
   MessageCircle,
   Phone,
   Share2,
-  ShieldCheck
+  ShieldCheck,
+  Smartphone,
+  NotebookText
 } from "lucide-react";
 import type { User, Product } from "@/lib/types";
 
@@ -70,11 +72,19 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       ? ({ _id: product.sellerId, name: "Verified seller", email: "", college: product.college } as User)
       : (product.sellerId as User);
   const whatsappText = encodeURIComponent(`Hi, I saw your ${product.title} listing on SellChey. Is it available?`);
-  const CategoryIcon = product.category === "book" ? BookOpen : Cpu;
+  const CategoryIcon = (() => {
+    switch (product.category) {
+      case "book": return BookOpen;
+      case "equipment": return Cpu;
+      case "electronics": return Smartphone;
+      case "notes": return NotebookText;
+      default: return BookOpen;
+    }
+  })();
   const postedDate = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "long", year: "numeric" }).format(new Date(product.createdAt));
 
   return (
-    <main className="bg-gradient-to-b from-surface-secondary via-surface-bg to-surface-secondary min-h-screen">
+    <main className="bg-gradient-to-b from-surface-secondary via-surface-bg to-surface-secondary min-h-screen pb-nav">
       <div className="mx-auto max-w-7xl px-4 py-6">
         {/* Back Button */}
         <Link href="/" className="mb-6 inline-flex items-center gap-2 rounded-lg border border-border bg-surface-bg px-4 py-2.5 font-semibold text-ink-secondary transition-smooth hover:bg-surface-tertiary">
@@ -119,9 +129,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
             {/* Thumbnail Gallery */}
             {product.images.length > 1 ? (
-              <div className="grid grid-cols-4 gap-3">
+              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-4">
                 {product.images.slice(0, 4).map((image, idx) => (
-                  <div key={image} className="relative aspect-square overflow-hidden rounded-lg border border-border bg-surface-secondary cursor-pointer hover:border-primary transition-smooth">
+                  <div key={image} className="relative aspect-square h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border/10 bg-surface-secondary cursor-pointer hover:border-primary transition-smooth sm:h-auto sm:w-auto">
                     <Image src={image} alt={`${product.title} - ${idx + 1}`} fill className="object-cover" sizes="15vw" />
                   </div>
                 ))}
@@ -149,10 +159,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               </div>
 
               {/* Title */}
-              <h1 className="text-4xl font-black leading-tight text-ink mb-4">{product.title}</h1>
+              <h1 className="text-2xl font-black leading-tight text-ink mb-3 sm:text-3xl lg:text-4xl">{product.title}</h1>
 
               {/* Price */}
-              <div className="flex items-center gap-2 text-4xl font-black text-gradient mb-6">
+              <div className="flex items-center gap-2 text-2xl font-black text-gradient mb-5 sm:text-3xl lg:text-4xl">
                 <BadgeIndianRupee size={32} />
                 ₹{product.price.toLocaleString("en-IN")}
               </div>

@@ -16,7 +16,7 @@ export default function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/5 bg-surface-secondary/50" />
+      <div className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/10 bg-surface" />
     );
   }
 
@@ -27,7 +27,7 @@ export default function ThemeToggle() {
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/5 bg-surface-secondary/50 text-ink-secondary transition-smooth hover:bg-surface-tertiary hover:text-ink"
+      className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border/10 bg-surface text-ink-secondary transition-smooth hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-500/10"
       aria-label="Toggle theme"
     >
       <motion.div

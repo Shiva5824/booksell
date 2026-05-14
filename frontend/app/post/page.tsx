@@ -15,7 +15,9 @@ import {
   Loader2,
   Lock,
   MapPin,
+  NotebookText,
   ShieldCheck,
+  Smartphone,
   Upload,
   X
 } from "lucide-react";
@@ -30,7 +32,7 @@ type ListingForm = {
   title: string;
   price: string;
   description: string;
-  category: "book" | "equipment";
+  category: "book" | "equipment" | "electronics" | "notes";
   condition: "new" | "good" | "used";
   college: string;
 };
@@ -68,7 +70,15 @@ export default function PostListingPage() {
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
   }, [files.length, form]);
 
-  const CategoryIcon = form.category === "book" ? BookOpen : Cpu;
+  const CategoryIcon = useMemo(() => {
+    switch (form.category) {
+      case "book": return BookOpen;
+      case "equipment": return Cpu;
+      case "electronics": return Smartphone;
+      case "notes": return NotebookText;
+      default: return BookOpen;
+    }
+  }, [form.category]);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -173,28 +183,40 @@ export default function PostListingPage() {
   }
 
   return (
-    <main className="bg-gradient-to-b from-surface-secondary via-surface-bg to-surface-secondary min-h-screen pb-20">
+    <main className="bg-gradient-to-b from-surface-secondary via-surface-bg to-surface-secondary min-h-screen pb-nav">
       <div className="mx-auto max-w-5xl px-4 py-8">
 
         {/* Step Indicator */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-4">
+        <div className="mb-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-black text-ink">Post New Listing</h1>
-              <p className="text-ink-secondary mt-1">{steps[currentStep - 1].description}</p>
+              <h1 className="text-2xl font-black text-ink sm:text-3xl">Post New Listing</h1>
+              <p className="text-sm text-ink-secondary mt-1">{steps[currentStep - 1].description}</p>
             </div>
-            <div className="text-right">
-              <span className="text-sm font-bold text-ink-tertiary uppercase tracking-wider">Step {currentStep} of 3</span>
-              <div className="flex gap-1.5 mt-2">
-                {steps.map((s) => (
-                  <div
-                    key={s.id}
-                    className={`h-1.5 w-12 rounded-full transition-all duration-500 ${currentStep >= s.id ? "bg-primary shadow-glow-primary" : "bg-border/20"
-                      }`}
-                  />
-                ))}
-              </div>
+            <div className="flex items-center gap-3">
+              {steps.map((s) => (
+                <div key={s.id} className="flex items-center gap-2">
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-black transition-all duration-500 ${
+                    currentStep > s.id
+                      ? "bg-primary text-white"
+                      : currentStep === s.id
+                      ? "bg-primary text-white ring-4 ring-primary/20"
+                      : "bg-border/20 text-ink-tertiary"
+                  }`}>{s.id}</div>
+                  <span className={`text-xs font-bold hidden sm:block ${
+                    currentStep >= s.id ? "text-ink" : "text-ink-tertiary"
+                  }`}>{s.title}</span>
+                  {s.id < 3 && <div className={`h-px w-6 transition-all duration-500 ${currentStep > s.id ? "bg-primary" : "bg-border/20"}`} />}
+                </div>
+              ))}
             </div>
+          </div>
+          {/* Progress bar */}
+          <div className="mt-4 h-1 w-full rounded-full bg-border/10">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500 shadow-glow-primary"
+              style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
+            />
           </div>
         </div>
 
@@ -226,8 +248,10 @@ export default function PostListingPage() {
                       <span className="block font-bold text-ink">Category</span>
                       <div className="grid grid-cols-2 gap-4">
                         {[
-                          { value: "book", label: "Textbook", icon: BookOpen },
-                          { value: "equipment", label: "Equipment", icon: Cpu }
+                          { value: "book", label: "Textbooks", icon: BookOpen },
+                          { value: "equipment", label: "Equipment", icon: Cpu },
+                          { value: "electronics", label: "Electronics", icon: Smartphone },
+                          { value: "notes", label: "Notes", icon: NotebookText }
                         ].map(({ value, label, icon: Icon }) => (
                           <button
                             key={value}
@@ -353,16 +377,30 @@ export default function PostListingPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.05 }}
-                  className="space-y-8"
+                  className="space-y-6"
                 >
-                  <div className="space-y-6 rounded-2xl border border-border/5 bg-surface-bg p-8 shadow-soft">
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {/* Mobile compact preview */}
+                  {previews[0] && (
+                    <div className="flex items-center gap-3 rounded-2xl border border-border/10 bg-white p-3 shadow-soft lg:hidden dark:bg-white/10">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+                        <Image src={previews[0]} alt="Preview" fill className="object-cover" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-ink text-sm">{form.title || "Your Item"}</p>
+                        <p className="text-orange-500 font-black">₹{form.price || "0"}</p>
+                        <p className="text-xs text-ink-tertiary">{previews.length} photo{previews.length !== 1 ? "s" : ""} added</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-5 rounded-2xl border border-border/5 bg-surface-bg p-5 shadow-soft sm:p-8">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
                       {previews.map((src, idx) => (
                         <div key={idx} className="relative aspect-square overflow-hidden rounded-2xl border border-border/10 group">
                           <Image src={src} alt="Preview" fill className="object-cover" />
                           <button
                             onClick={() => removeFile(idx)}
-                            className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-md opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
                           >
                             <X size={16} />
                           </button>
@@ -370,16 +408,16 @@ export default function PostListingPage() {
                       ))}
 
                       {files.length < 6 && (
-                        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border/10 bg-surface-bg transition-all hover:border-primary hover:bg-primary/5">
+                        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border/10 bg-surface-bg transition-all hover:border-primary hover:bg-primary/5">
                           <input type="file" multiple accept="image/*" className="sr-only" onChange={handleFileChange} />
-                          <Camera size={32} className="text-primary" />
-                          <span className="text-xs font-bold text-ink-tertiary">Add Photo ({files.length}/6)</span>
+                          <Camera size={28} className="text-primary" />
+                          <span className="text-xs font-bold text-ink-tertiary text-center px-1">Add Photo<br />({files.length}/6)</span>
                         </label>
                       )}
                     </div>
 
-                    <div className="rounded-xl bg-primary/5 p-4 flex items-start gap-3">
-                      <ShieldCheck className="text-primary shrink-0 mt-0.5" size={20} />
+                    <div className="rounded-xl bg-primary/5 p-3 flex items-start gap-3 sm:p-4">
+                      <ShieldCheck className="text-primary shrink-0 mt-0.5" size={18} />
                       <p className="text-xs text-ink-secondary leading-relaxed">
                         Clear photos (max 10MB each) help your item sell 3x faster. You can add up to 6 images.
                       </p>

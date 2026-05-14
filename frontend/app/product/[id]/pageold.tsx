@@ -25,7 +25,6 @@ async function getProductServer(id: string): Promise<Product | null> {
     console.log("Fetching from:", url);
 
     const res = await fetch(url, {
-      cache: "revalidate",
       next: { revalidate: 60 }
     });
 

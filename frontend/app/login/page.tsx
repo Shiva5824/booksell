@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -22,6 +22,14 @@ type AuthMode = "landing" | "email" | "phone";
 type EmailMode = "signin" | "signup";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<main className="grid min-h-screen place-items-center bg-background text-ink">Loading...</main>}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";

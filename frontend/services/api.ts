@@ -115,10 +115,7 @@ export async function uploadImages(files: File[]) {
     });
 
     const response = await axios.post(`${API_BASE_URL}/uploads/images`, formData, {
-      headers: {
-        ...getAuthHeader(),
-        "Content-Type": "multipart/form-data",
-      },
+      headers: getAuthHeader(),
     });
     return response.data.data || [];
   } catch (error) {

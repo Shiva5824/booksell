@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2, IndianRupee, MapPin, BookOpen, Cpu, Camera, ImagePlus, AlertCircle, Trash2, Plus } from "lucide-react";
+import { X, Loader2, IndianRupee, MapPin, BookOpen, Cpu, Camera, ImagePlus, AlertCircle, Trash2, Plus, Smartphone, NotebookText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { updateProduct, uploadImages } from "@/services/api";
 import type { Product } from "@/lib/types";
@@ -243,8 +243,10 @@ export default function EditListingModal({
                     <span className="text-sm font-black text-ink-secondary uppercase tracking-widest">Category</span>
                     <div className="grid grid-cols-2 gap-4">
                       {[
-                        { value: "book", label: "Textbook", icon: BookOpen },
-                        { value: "equipment", label: "Equipment", icon: Cpu }
+                        { value: "book", label: "Textbooks", icon: BookOpen },
+                        { value: "equipment", label: "Equipment", icon: Cpu },
+                        { value: "electronics", label: "Electronics", icon: Smartphone },
+                        { value: "notes", label: "Notes", icon: NotebookText }
                       ].map(({ value, label, icon: Icon }) => (
                         <button
                           key={value}

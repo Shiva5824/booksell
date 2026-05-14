@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpen, Cpu, PackageOpen, Plus, TrendingUp, UsersRound, Zap, Award, MapPin } from "lucide-react";
+import {
+  ArrowRight, BookOpen, Calculator, Cpu, FlaskConical,
+  GraduationCap, MapPin, NotebookText, PackageOpen,
+  Plus, Search, Smartphone, TrendingUp, UsersRound,
+} from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import SearchBar from "@/components/SearchBar";
@@ -11,154 +15,187 @@ import type { Product, ProductFilters } from "@/lib/types";
 
 const staggerContainer: any = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1
-    }
-  }
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
 
 const fadeUp: any = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 24 } },
 };
+
+const categoryTiles = [
+  { label: "Engineering Books", icon: BookOpen, category: "book" as const },
+  { label: "Medical Books", icon: GraduationCap, category: "book" as const },
+  { label: "Calculators", icon: Calculator, category: "equipment" as const },
+  { label: "Lab Equipment", icon: FlaskConical, category: "equipment" as const },
+  { label: "Notes & Materials", icon: NotebookText, category: "notes" as const },
+  { label: "Electronics", icon: Cpu, category: "electronics" as const },
+];
+
+function SkeletonCard() {
+  return (
+    <div className="overflow-hidden rounded-[28px] bg-white shadow-soft dark:bg-white/10">
+      <div className="aspect-[4/3] skeleton" />
+      <div className="p-4 space-y-3">
+        <div className="skeleton h-5 rounded-full w-3/4" />
+        <div className="skeleton h-4 rounded-full w-1/2" />
+        <div className="flex gap-2">
+          <div className="skeleton h-6 rounded-full w-20" />
+          <div className="skeleton h-6 rounded-full w-28" />
+        </div>
+        <div className="skeleton h-9 rounded-full w-full mt-2" />
+      </div>
+    </div>
+  );
+}
+
+function StatSkeleton() {
+  return (
+    <div className="rounded-[28px] bg-white p-4 shadow-soft dark:bg-white/10 sm:p-5">
+      <div className="skeleton h-4 rounded-full w-2/3 mb-3" />
+      <div className="skeleton h-9 rounded-full w-1/2" />
+    </div>
+  );
+}
 
 export default function HomePage() {
   const [filters, setFilters] = useState<ProductFilters>({ sort: "newest" });
   const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [visibleCount, setVisibleCount] = useState(6);
 
   useEffect(() => {
-    getProducts(filters).then(setProducts);
+    setLoadingProducts(true);
+    getProducts(filters).then((data) => {
+      setProducts(data);
+      setLoadingProducts(false);
+    });
   }, [filters]);
 
   const visibleProducts = useMemo(() => products.slice(0, visibleCount), [products, visibleCount]);
-  const activeProducts = useMemo(() => products.filter((product) => product.status === "active"), [products]);
-  const bookCount = useMemo(() => products.filter((product) => product.category === "book").length, [products]);
-  const equipmentCount = products.length - bookCount;
-  const colleges = useMemo(() => Array.from(new Set(products.map((product) => product.college))).slice(0, 3), [products]);
-  const leadProduct = visibleProducts[0] || products[0];
+  const bookCount = useMemo(() => products.filter((p) => p.category === "book").length, [products]);
+  const equipmentCount = useMemo(() => products.filter((p) => p.category === "equipment").length, [products]);
+  const electronicsCount = useMemo(() => products.filter((p) => p.category === "electronics").length, [products]);
+  const notesCount = useMemo(() => products.filter((p) => p.category === "notes").length, [products]);
+  const colleges = useMemo(() => Array.from(new Set(products.map((p) => p.college))).slice(0, 4), [products]);
+
+  function applyCategory(category: ProductFilters["category"]) {
+    setVisibleCount(6);
+    setFilters({ ...filters, category, sort: filters.sort || "newest" });
+    document.getElementById("listings")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const stats = [
+    { label: "Books", value: bookCount, icon: BookOpen },
+    { label: "Equipment", value: equipmentCount, icon: Cpu },
+    { label: "Electronics", value: electronicsCount, icon: Smartphone },
+    { label: "Notes", value: notesCount, icon: NotebookText },
+  ];
 
   return (
-    <main className="bg-background relative overflow-hidden">
-      {/* Dynamic Background */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] rounded-full bg-primary/10 blur-[100px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute top-[40%] -left-[10%] w-[500px] h-[500px] rounded-full bg-secondary/10 blur-[100px]"
-        />
-      </div>
+    <main className="min-h-screen bg-[#f8f6f3] text-ink dark:bg-slate-950 pb-nav">
 
-      {/* Hero Section */}
-      <section className="relative z-10 border-b border-border pb-16 pt-20 lg:pt-28">
-        <div className="mx-auto max-w-7xl px-4 lg:px-6">
-          <div className="grid gap-12 lg:grid-cols-[1.3fr_0.7fr] lg:items-center">
-            {/* Left Side - Hero Content */}
-            <motion.div
-              variants={staggerContainer}
-              initial="hidden"
-              animate="show"
-              className="flex flex-col justify-between gap-8"
-            >
-              {/* Badges */}
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full glass border-primary/20 px-4 py-2 text-sm font-bold text-primary shadow-glow-primary">
-                  <Zap size={16} className="animate-pulse" />
-                  Trending Now
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full glass border-accent/20 px-4 py-2 text-sm font-bold text-accent">
-                  <Award size={16} />
-                  Top Rated
-                </span>
-              </motion.div>
+      {/* ── Hero ── */}
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:py-16">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.02fr_0.98fr]">
+          <motion.div variants={staggerContainer} initial="hidden" animate="show" className="space-y-7">
+            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.28em] text-orange-500 sm:text-sm">
+              <TrendingUp size={16} />
+              Student Marketplace
+            </motion.div>
 
-              {/* Main Headline */}
-              <motion.div variants={fadeUp} className="space-y-6">
-                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-[1.1] tracking-tight">
-                  Find & Sell <br />
-                  <span className="text-gradient">Campus Essentials</span>
-                </h1>
-                <p className="text-lg sm:text-xl text-ink-secondary leading-relaxed max-w-2xl font-medium">
-                  Connect with verified sellers on campus. Buy textbooks, equipment, and more with confidence. Post your items in minutes.
-                </p>
-              </motion.div>
+            <motion.div variants={fadeUp} className="space-y-5">
+              <h1 className="text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-7xl">
+                Buy &amp; Sell
+                <br />
+                Used College
+                <br />
+                Essentials
+              </h1>
+              <p className="max-w-xl text-base font-medium leading-relaxed text-ink-secondary sm:text-lg">
+                Find affordable books, notes, calculators, lab equipment and more from students around your college.
+              </p>
+            </motion.div>
 
-              {/* Stats */}
-              <motion.div variants={fadeUp} className="grid grid-cols-3 gap-3 sm:gap-6 mt-4">
-                {[
-                  { label: "Active Listings", value: activeProducts.length, icon: TrendingUp, color: "text-primary" },
-                  { label: "Books", value: bookCount, icon: BookOpen, color: "text-secondary" },
-                  { label: "Equipment", value: equipmentCount, icon: Cpu, color: "text-accent" },
-                ].map((stat, i) => (
-                  <div key={i} className="rounded-2xl glass p-4 sm:p-5 hover:shadow-soft-lg transition-all duration-300">
-                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink-secondary mb-3">
-                      <stat.icon size={16} className={stat.color} />
+            <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
+              <a href="#listings" className="btn-primary px-6 py-3.5 text-sm sm:px-8 sm:py-4 sm:text-base">
+                <Search size={19} />
+                Explore Listings
+              </a>
+              <Link href="/post" className="btn-secondary px-6 py-3.5 text-sm sm:px-8 sm:py-4 sm:text-base">
+                <Plus size={19} />
+                Sell Your Item
+              </Link>
+            </motion.div>
+
+            {/* Stats */}
+            <motion.div variants={fadeUp} className="grid max-w-2xl grid-cols-2 gap-3 pt-1 sm:grid-cols-4 sm:gap-4">
+              {loadingProducts
+                ? [1, 2, 3, 4].map((i) => <StatSkeleton key={i} />)
+                : stats.map((stat) => (
+                  <div key={stat.label} className="rounded-[24px] bg-white p-4 shadow-soft dark:bg-white/10">
+                    <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wide text-ink-secondary">
+                      <stat.icon size={15} className="text-orange-500" />
                       <span className="truncate">{stat.label}</span>
                     </div>
-                    <p className="text-3xl sm:text-4xl font-black text-ink">{stat.value}</p>
+                    <p className="text-2xl font-black sm:text-3xl">{stat.value}</p>
                   </div>
                 ))}
-              </motion.div>
-
-              {/* CTA Buttons */}
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-4 pt-4">
-                <Link href="/post" className="btn-primary text-base px-8 py-4">
-                  <Plus size={22} />
-                  Start Selling
-                </Link>
-                <a href="#listings" className="btn-secondary text-base px-8 py-4">
-                  Browse Listings
-                  <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
-                </a>
-              </motion.div>
             </motion.div>
+          </motion.div>
 
-            {/* Right Side - Featured */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
-              className="relative hidden lg:block"
-            >
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-secondary/20 rounded-[3rem] blur-2xl -z-10 transform rotate-6 scale-95" />
-              <div className="rounded-[2.5rem] glass p-6 shadow-2xl border-white/10">
-                <div className="flex items-center justify-between gap-3 mb-6">
-                  <div>
-                    <p className="text-sm font-black text-primary uppercase tracking-widest flex items-center gap-2">
-                      <Zap size={16} /> Spotlight
-                    </p>
-                    <h3 className="font-bold text-ink text-xl line-clamp-1 mt-1">{leadProduct?.title || "Latest Arrival"}</h3>
-                  </div>
-                  {leadProduct && (
-                    <span className="rounded-xl bg-accent/20 border border-accent/30 px-3 py-1.5 text-sm font-bold text-accent shrink-0">
-                      ₹{leadProduct.price.toLocaleString("en-IN")}
-                    </span>
-                  )}
-                </div>
-                {leadProduct ? (
-                  <div className="scale-[1.02] transform-origin-top">
-                    <ProductCard product={leadProduct} />
-                  </div>
-                ) : (
-                  <div className="grid min-h-[400px] place-items-center rounded-2xl bg-surface-secondary text-ink-tertiary">
-                    <PackageOpen size={48} className="animate-pulse" />
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
+          {/* Hero image — hidden on mobile to keep layout clean */}
+          <motion.div
+            initial={{ opacity: 0, x: 42 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, type: "spring", bounce: 0.28 }}
+            className="relative hidden lg:block min-h-[610px]"
+          >
+            <div className="absolute -left-5 -top-5 h-32 w-32 rounded-full bg-orange-200 blur-3xl" />
+            <img
+              src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1400&auto=format&fit=crop"
+              alt="Students browsing books in a library"
+              className="relative h-[610px] w-full rounded-[34px] object-cover shadow-2xl"
+            />
+            <div className="absolute bottom-5 left-5 right-5 rounded-[26px] bg-white/92 p-5 shadow-soft backdrop-blur dark:bg-slate-950/88">
+              <p className="text-sm font-black uppercase tracking-[0.22em] text-orange-500">Campus-ready</p>
+              <p className="mt-2 text-lg font-black">Books, gear and essentials from real student listings.</p>
+            </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Main Listings Section */}
-      <section id="listings" className="relative z-10 mx-auto max-w-7xl px-4 py-16 lg:py-24">
+      {/* ── Categories ── */}
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-500 sm:text-sm">Shop by need</p>
+            <h2 className="mt-1.5 text-2xl font-black tracking-tight sm:text-3xl">Popular Categories</h2>
+          </div>
+          <button onClick={() => applyCategory("")} className="text-sm font-black text-orange-500 hover:underline">
+            View All
+          </button>
+        </div>
+
+        {/* Horizontal scroll on mobile, grid on desktop */}
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">
+          {categoryTiles.map(({ label, icon: Icon, category }) => (
+            <button
+              key={label}
+              onClick={() => applyCategory(category)}
+              className="group flex-none w-36 sm:w-auto rounded-[24px] border border-transparent bg-white p-4 text-center shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-orange-100 hover:shadow-soft-lg dark:bg-white/10"
+            >
+              <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100 text-orange-500 transition-transform duration-300 group-hover:scale-105 dark:bg-orange-500/15">
+                <Icon size={24} />
+              </span>
+              <span className="block text-xs font-black leading-snug sm:text-sm">{label}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Listings ── */}
+      <section id="listings" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
         <SearchBar
           filters={filters}
           resultCount={products.length}
@@ -168,81 +205,64 @@ export default function HomePage() {
           }}
         />
 
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-12 mb-8"
-        >
+        <div className="mb-7 mt-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-3xl sm:text-4xl font-black text-ink tracking-tight">Explore Market</h2>
-            <p className="text-base font-medium text-ink-secondary mt-2">
-              Sorted by <span className="text-primary font-bold">{filters.sort === "price_asc" ? "lowest price" : filters.sort === "price_desc" ? "highest price" : "newest arrivals"}</span>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-500 sm:text-sm">Live marketplace</p>
+            <h2 className="mt-1.5 text-2xl font-black tracking-tight sm:text-3xl sm:text-4xl">Trending Listings</h2>
+            <p className="mt-1.5 text-sm font-medium text-ink-secondary sm:text-base">
+              Sorted by{" "}
+              {filters.sort === "price_asc" ? "lowest price" : filters.sort === "price_desc" ? "highest price" : "newest arrivals"}.
             </p>
           </div>
-          <div className="rounded-xl glass px-5 py-2.5 text-sm font-bold text-ink shadow-soft inline-flex items-center gap-2">
-            <PackageOpen size={18} className="text-primary" />
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black shadow-soft dark:bg-white/10">
+            <PackageOpen size={16} className="text-orange-500" />
             {products.length} items available
           </div>
-        </motion.div>
+        </div>
 
-        {/* Products Grid */}
-        {visibleProducts.length ? (
+        {loadingProducts ? (
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:gap-7">
+            {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : visibleProducts.length ? (
           <>
             <motion.div
               variants={staggerContainer}
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
-              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-8"
+              className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:gap-7"
             >
               {visibleProducts.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </motion.div>
 
-            {/* Load More Button */}
             {visibleProducts.length < products.length && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                className="flex justify-center pt-12"
-              >
-                <button
-                  onClick={() => setVisibleCount((count) => count + 6)}
-                  className="btn-secondary px-8 py-4 rounded-full"
-                >
+              <div className="flex justify-center pt-10">
+                <button onClick={() => setVisibleCount((c) => c + 6)} className="btn-secondary px-8 py-4">
                   Load More Listings
                 </button>
-              </motion.div>
+              </div>
             )}
           </>
         ) : (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="grid min-h-[400px] place-items-center rounded-3xl border border-dashed border-border glass p-8 text-center"
+            className="grid min-h-[320px] place-items-center rounded-[34px] border border-dashed border-border/20 bg-white p-8 text-center shadow-soft dark:bg-white/10"
           >
-            <div className="space-y-5 max-w-md mx-auto">
-              <div className="flex justify-center">
-                <motion.div
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 3, repeat: Infinity }}
-                  className="rounded-full bg-accent/10 p-5 shadow-glow-primary border border-accent/20"
-                >
-                  <PackageOpen size={48} className="text-accent" />
-                </motion.div>
+            <div className="mx-auto max-w-md space-y-5">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-orange-100 text-orange-500 dark:bg-orange-500/15">
+                <PackageOpen size={38} />
               </div>
               <div>
-                <h3 className="text-2xl font-black text-ink">No Listings Found</h3>
-                <p className="text-ink-secondary mt-3 text-base">We couldn't find any items matching your filters. Try adjusting them or check back later.</p>
+                <h3 className="text-2xl font-black">No Listings Found</h3>
+                <p className="mt-3 text-sm text-ink-secondary sm:text-base">
+                  Try adjusting your filters or check back later when students post new items.
+                </p>
               </div>
-              <button
-                onClick={() => setFilters({ sort: "newest" })}
-                className="btn-primary mt-6 w-full sm:w-auto"
-              >
+              <button onClick={() => setFilters({ sort: "newest" })} className="btn-primary mt-4">
                 Clear All Filters
               </button>
             </div>
@@ -250,55 +270,110 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Campus Coverage Marquee or List */}
+      {/* ── Active Campuses ── */}
       {colleges.length > 0 && (
-        <section className="relative z-10 border-y border-border bg-surface-secondary/30 py-12">
-          <div className="mx-auto max-w-7xl px-4 lg:px-6">
-            <div className="flex flex-col md:flex-row items-center gap-8 justify-between">
-              <div className="text-center md:text-left">
-                <h2 className="text-2xl font-black text-ink flex items-center justify-center md:justify-start gap-2">
-                  <UsersRound className="text-primary" /> Active Campuses
-                </h2>
-                <p className="text-ink-secondary mt-2">Find items specifically from these verified colleges.</p>
-              </div>
-              <div className="flex flex-wrap justify-center gap-3">
-                {colleges.map((college) => (
-                  <button
-                    key={college}
-                    onClick={() => setFilters({ college, sort: "newest" })}
-                    className="glass px-6 py-3 rounded-2xl text-sm font-bold hover:bg-white/10 transition-colors flex items-center gap-2"
-                  >
-                    <MapPin size={16} className="text-primary" />
-                    {college}
-                  </button>
-                ))}
-              </div>
+        <section className="border-y border-border/10 bg-white/55 py-10 dark:bg-white/5">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 sm:px-6 md:flex-row">
+            <div className="text-center md:text-left">
+              <h2 className="flex items-center justify-center gap-2 text-xl font-black md:justify-start sm:text-2xl">
+                <UsersRound className="text-orange-500" /> Active Campuses
+              </h2>
+              <p className="mt-2 text-sm text-ink-secondary sm:text-base">Filter listings from colleges already active on SellChey.</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+              {colleges.map((college) => (
+                <button
+                  key={college}
+                  onClick={() => { setVisibleCount(6); setFilters({ college, sort: "newest" }); }}
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black shadow-soft transition-colors hover:bg-orange-50 dark:bg-white/10"
+                >
+                  <MapPin size={14} className="text-orange-500" />
+                  {college}
+                </button>
+              ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* CTA Section */}
-      <section className="relative z-10 border-t border-border bg-gradient-to-br from-primary/20 via-surface-elevated to-secondary/20 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
-        <div className="relative mx-auto max-w-4xl px-4 py-20 lg:py-28 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-4xl sm:text-5xl font-black mb-6 text-ink tracking-tight">Ready to turn clutter into cash?</h2>
-            <p className="text-lg sm:text-xl text-ink-secondary mb-10 max-w-2xl mx-auto font-medium">
-              Join hundreds of verified sellers on campus. List your items in less than 2 minutes and start earning today.
-            </p>
-            <Link href="/post" className="inline-flex items-center gap-3 bg-ink text-background font-black px-8 py-4 rounded-full hover:scale-105 hover:shadow-soft transition-all duration-300 active:scale-95 text-lg">
-              <Plus size={24} />
-              Post Your First Item
-            </Link>
-          </motion.div>
+      {/* ── CTA Banner ── */}
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
+        <div className="relative overflow-hidden rounded-[30px] bg-slate-900 p-7 text-white shadow-soft-lg sm:p-10 lg:p-14">
+          <div className="relative z-10 grid items-center gap-8 md:grid-cols-[1fr_340px]">
+            <div className="max-w-2xl">
+              <p className="mb-3 text-xs font-black uppercase tracking-[0.28em] text-orange-400 sm:text-sm">Student Deals</p>
+              <h2 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
+                Save More on<br />College Essentials
+              </h2>
+              <p className="mt-5 text-sm leading-relaxed text-slate-300 sm:text-lg">
+                Buy affordable second-hand items from students near you and save every semester.
+              </p>
+              <a
+                href="#listings"
+                className="mt-7 inline-flex items-center gap-2 rounded-full bg-orange-500 px-7 py-3.5 font-black text-white transition-colors hover:bg-orange-600 sm:px-8 sm:py-4"
+              >
+                Start Browsing
+                <ArrowRight size={18} />
+              </a>
+            </div>
+            <img
+              src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=1400&auto=format&fit=crop"
+              alt="Stack of books"
+              className="hidden h-[280px] w-full rounded-[24px] object-cover shadow-2xl md:block lg:h-[360px]"
+            />
+          </div>
         </div>
       </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-border/10 bg-white dark:bg-slate-950">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <h3 className="text-xl font-black">
+              Sell<span className="text-orange-500">Chey</span>
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
+              India's student marketplace for books, notes, gadgets and college essentials.
+            </p>
+          </div>
+          <div>
+            <button
+              onClick={() => document.getElementById("listings")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="mb-3 block font-black hover:text-orange-500 transition-colors"
+            >
+              Marketplace
+            </button>
+            <ul className="space-y-2 text-sm text-ink-secondary">
+              {(["book", "equipment", "electronics", "notes"] as const).map((cat) => (
+                <li key={cat}>
+                  <button onClick={() => applyCategory(cat)} className="hover:text-orange-500 transition-colors capitalize">
+                    {cat === "book" ? "Books" : cat === "equipment" ? "Equipment" : cat === "electronics" ? "Electronics" : "Notes"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className="mb-3 font-black">Company</h4>
+            <ul className="space-y-2 text-sm text-ink-secondary">
+              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">About</span></li>
+              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Support</span></li>
+              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Contact</span></li>
+              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Privacy Policy</span></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="mb-3 font-black">Get Started</h4>
+            <Link href="/post" className="btn-primary text-sm">
+              <Plus size={16} />
+              Post Listing
+            </Link>
+          </div>
+        </div>
+        <div className="border-t border-border/10 py-5 text-center text-xs text-ink-tertiary sm:text-sm">
+          © 2026 SellChey. All rights reserved.
+        </div>
+      </footer>
     </main>
   );
 }

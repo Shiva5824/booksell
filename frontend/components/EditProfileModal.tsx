@@ -58,12 +58,12 @@ export default function EditProfileModal({
         return;
       }
 
-      let avatarUrl = currentAvatar;
+      let avatarUrl = currentAvatar || "";
 
       // Upload avatar if changed
       if (avatar) {
         const imageUrls = await uploadImages([avatar]);
-        avatarUrl = imageUrls[0];
+        avatarUrl = imageUrls[0] || avatarUrl;
       }
 
       // Update profile
