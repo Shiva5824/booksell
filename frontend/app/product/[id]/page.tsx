@@ -15,7 +15,6 @@ import {
   Phone,
   Share2,
   ShieldCheck,
-  ShieldCheck,
   Stethoscope,
   FlaskConical
 } from "lucide-react";
