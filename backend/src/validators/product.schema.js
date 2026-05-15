@@ -8,7 +8,7 @@ export const productQuerySchema = z.object({
   query: z.object({
     q: z.string().optional(),
     college: z.string().optional(),
-    category: z.enum(["book", "equipment", "electronics", "notes"]).optional(),
+    category: z.enum(["ipe", "eapcet", "jee", "neet"]).optional(),
     min: z.coerce.number().min(0).optional(),
     max: z.coerce.number().min(0).optional(),
     sort: z.enum(["newest", "price_asc", "price_desc"]).optional(),
@@ -28,7 +28,7 @@ export const createProductSchema = z.object({
     title: z.string().min(2).max(120),
     price: z.number().min(0),
     condition: z.enum(["new", "good", "used"]),
-    category: z.enum(["book", "equipment", "electronics", "notes"]),
+    category: z.enum(["ipe", "eapcet", "jee", "neet"]),
     images: z.array(z.string().url()).min(1).max(6),
     description: z.string().min(3).max(2000),
     college: z.string().min(1).max(120)

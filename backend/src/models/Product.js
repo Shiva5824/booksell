@@ -5,7 +5,7 @@ const productSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true, index: "text" },
     price: { type: Number, required: true, min: 0 },
     condition: { type: String, enum: ["new", "good", "used"], required: true },
-    category: { type: String, enum: ["book", "equipment", "electronics", "notes"], required: true, index: true },
+    category: { type: String, enum: ["ipe", "eapcet", "jee", "neet"], required: true, index: true },
     images: {
       type: [String],
       validate: {

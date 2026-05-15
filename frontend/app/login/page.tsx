@@ -170,18 +170,10 @@ function LoginPageContent() {
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background glow */}
-      <div className="pointer-events-none absolute inset-0 z-0">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-1/4 -right-1/4 w-[700px] h-[700px] rounded-full bg-primary/15 blur-[120px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-secondary/15 blur-[120px]"
-        />
+      {/* Background glow - simplified to reduce lag on mobile */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-1/4 -right-1/4 w-[700px] h-[700px] rounded-full bg-primary/10 blur-[100px] sm:bg-primary/15 sm:blur-[120px] animate-pulseGlow" />
+        <div className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-secondary/10 blur-[100px] sm:bg-secondary/15 sm:blur-[120px] animate-pulseGlow" style={{ animationDelay: "2s" }} />
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -383,8 +375,7 @@ function LoginPageContent() {
                   {otpSent ? `A 6-digit OTP was sent to ${phone}` : "We'll send a one-time code to your phone"}
                 </p>
 
-                {/* invisible recaptcha anchor */}
-                <div id="recaptcha-container" ref={recaptchaContainerRef} />
+                {/* invisible recaptcha anchor will go below */}
 
                 {!otpSent ? (
                   <div className="space-y-4">
@@ -414,6 +405,11 @@ function LoginPageContent() {
                     >
                       {loading ? <Loader2 size={20} className="animate-spin" /> : (<>Send OTP <ArrowRight size={18} /></>)}
                     </motion.button>
+
+                    {/* structured recaptcha container */}
+                    <div className="flex justify-center mt-4">
+                      <div id="recaptcha-container" ref={recaptchaContainerRef} />
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-6">

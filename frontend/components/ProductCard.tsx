@@ -4,9 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  BadgeIndianRupee, BookOpen, Clock3, Cpu,
+  BadgeIndianRupee, BookOpen, Clock3, Cpu, FlaskConical,
   Heart, Image as ImageIcon, MapPin, MessageCircle,
-  UserRound, Smartphone, NotebookText,
+  UserRound, Stethoscope,
 } from "lucide-react";
 import type { Product, User } from "@/lib/types";
 
@@ -14,10 +14,10 @@ export default function ProductCard({ product }: { product: Product }) {
   const sold = product.status === "sold";
   const Icon = (() => {
     switch (product.category) {
-      case "book": return BookOpen;
-      case "equipment": return Cpu;
-      case "electronics": return Smartphone;
-      case "notes": return NotebookText;
+      case "ipe": return BookOpen;
+      case "eapcet": return FlaskConical;
+      case "jee": return Cpu;
+      case "neet": return Stethoscope;
       default: return BookOpen;
     }
   })();
@@ -102,7 +102,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="flex flex-wrap gap-1.5">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-500 dark:bg-orange-500/15">
             <Icon size={13} />
-            <span className="capitalize">{product.category}</span>
+            <span className="uppercase tracking-wider">{product.category}</span>
           </span>
           <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-secondary bg-[#f5f2ee] rounded-full px-3 py-1 truncate max-w-[160px] dark:bg-white/10">
             <MapPin size={13} className="shrink-0 text-ink-tertiary" />

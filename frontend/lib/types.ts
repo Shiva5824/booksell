@@ -1,4 +1,4 @@
-export type ProductCategory = "book" | "equipment" | "electronics" | "notes";
+export type ProductCategory = "ipe" | "eapcet" | "jee" | "neet";
 export type ProductCondition = "new" | "good" | "used";
 export type ProductStatus = "active" | "sold";
 

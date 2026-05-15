@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, BookOpen, Cpu, Filter, PackageOpen,
-  X, Smartphone, NotebookText, SlidersHorizontal,
+  X, Stethoscope, FlaskConical, SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
@@ -77,10 +77,10 @@ export default function BrowsePage() {
 
   const catIcon = (cat: string) => {
     switch (cat) {
-      case "book": return <BookOpen size={15} />;
-      case "equipment": return <Cpu size={15} />;
-      case "electronics": return <Smartphone size={15} />;
-      case "notes": return <NotebookText size={15} />;
+      case "ipe": return <BookOpen size={15} />;
+      case "eapcet": return <FlaskConical size={15} />;
+      case "jee": return <Cpu size={15} />;
+      case "neet": return <Stethoscope size={15} />;
       default: return null;
     }
   };
@@ -104,7 +104,7 @@ export default function BrowsePage() {
       <div className="space-y-2">
         <label className="block text-xs font-black uppercase tracking-widest text-ink-tertiary">Category</label>
         <div className="space-y-1.5">
-          {["book", "equipment", "electronics", "notes"].map((cat) => (
+          {["ipe", "eapcet", "jee", "neet"].map((cat) => (
             <label key={cat} className="flex items-center gap-3 cursor-pointer py-1">
               <input
                 type="radio"

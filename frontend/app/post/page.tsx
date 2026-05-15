@@ -17,7 +17,8 @@ import {
   MapPin,
   NotebookText,
   ShieldCheck,
-  Smartphone,
+  Stethoscope,
+  FlaskConical,
   Upload,
   X
 } from "lucide-react";
@@ -238,7 +239,7 @@ export default function PostListingPage() {
                       <input
                         value={form.title}
                         onChange={(e) => setForm({ ...form, title: e.target.value })}
-                        placeholder="e.g., Physics textbook, Drawing board..."
+                        placeholder="e.g., HC Verma Concepts of Physics, NCERT Biology..."
                         className="input-base text-xl"
                         autoFocus
                       />
@@ -248,10 +249,10 @@ export default function PostListingPage() {
                       <span className="block font-bold text-ink">Category</span>
                       <div className="grid grid-cols-2 gap-4">
                         {[
-                          { value: "book", label: "Textbooks", icon: BookOpen },
-                          { value: "equipment", label: "Equipment", icon: Cpu },
-                          { value: "electronics", label: "Electronics", icon: Smartphone },
-                          { value: "notes", label: "Notes", icon: NotebookText }
+                          { value: "ipe", label: "IPE", icon: BookOpen },
+                          { value: "eapcet", label: "EAPCET", icon: FlaskConical },
+                          { value: "jee", label: "JEE", icon: Cpu },
+                          { value: "neet", label: "NEET", icon: Stethoscope }
                         ].map(({ value, label, icon: Icon }) => (
                           <button
                             key={value}

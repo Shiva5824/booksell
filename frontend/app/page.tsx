@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowRight, BookOpen, Calculator, Cpu, FlaskConical,
-  GraduationCap, MapPin, NotebookText, PackageOpen,
-  Plus, Search, Smartphone, TrendingUp, UsersRound,
+  ArrowRight, BookOpen, Cpu, FlaskConical,
+  MapPin, PackageOpen, Plus, Search, 
+  Stethoscope, TrendingUp, UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
@@ -23,13 +23,27 @@ const fadeUp: any = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 24 } },
 };
 
-const categoryTiles = [
-  { label: "Engineering Books", icon: BookOpen, category: "book" as const },
-  { label: "Medical Books", icon: GraduationCap, category: "book" as const },
-  { label: "Calculators", icon: Calculator, category: "equipment" as const },
-  { label: "Lab Equipment", icon: FlaskConical, category: "equipment" as const },
-  { label: "Notes & Materials", icon: NotebookText, category: "notes" as const },
-  { label: "Electronics", icon: Cpu, category: "electronics" as const },
+const categoryGroups = [
+  {
+    title: "Engineering",
+    items: [
+      { label: "JEE", icon: Cpu, category: "jee" as const },
+      { label: "EAPCET", icon: FlaskConical, category: "eapcet" as const },
+    ]
+  },
+  {
+    title: "Medical",
+    items: [
+      { label: "NEET", icon: Stethoscope, category: "neet" as const },
+      { label: "EAPCET", icon: FlaskConical, category: "eapcet" as const },
+    ]
+  },
+  {
+    title: "State Board",
+    items: [
+      { label: "IPE", icon: BookOpen, category: "ipe" as const }
+    ]
+  }
 ];
 
 function SkeletonCard() {
@@ -73,10 +87,10 @@ export default function HomePage() {
   }, [filters]);
 
   const visibleProducts = useMemo(() => products.slice(0, visibleCount), [products, visibleCount]);
-  const bookCount = useMemo(() => products.filter((p) => p.category === "book").length, [products]);
-  const equipmentCount = useMemo(() => products.filter((p) => p.category === "equipment").length, [products]);
-  const electronicsCount = useMemo(() => products.filter((p) => p.category === "electronics").length, [products]);
-  const notesCount = useMemo(() => products.filter((p) => p.category === "notes").length, [products]);
+  const ipeCount = useMemo(() => products.filter((p) => p.category === "ipe").length, [products]);
+  const eapcetCount = useMemo(() => products.filter((p) => p.category === "eapcet").length, [products]);
+  const jeeCount = useMemo(() => products.filter((p) => p.category === "jee").length, [products]);
+  const neetCount = useMemo(() => products.filter((p) => p.category === "neet").length, [products]);
   const colleges = useMemo(() => Array.from(new Set(products.map((p) => p.college))).slice(0, 4), [products]);
 
   function applyCategory(category: ProductFilters["category"]) {
@@ -86,10 +100,10 @@ export default function HomePage() {
   }
 
   const stats = [
-    { label: "Books", value: bookCount, icon: BookOpen },
-    { label: "Equipment", value: equipmentCount, icon: Cpu },
-    { label: "Electronics", value: electronicsCount, icon: Smartphone },
-    { label: "Notes", value: notesCount, icon: NotebookText },
+    { label: "IPE Books", value: ipeCount, icon: BookOpen },
+    { label: "EAPCET Books", value: eapcetCount, icon: FlaskConical },
+    { label: "JEE Books", value: jeeCount, icon: Cpu },
+    { label: "NEET Books", value: neetCount, icon: Stethoscope },
   ];
 
   return (
@@ -113,7 +127,7 @@ export default function HomePage() {
                 Essentials
               </h1>
               <p className="max-w-xl text-base font-medium leading-relaxed text-ink-secondary sm:text-lg">
-                Find affordable books, notes, calculators, lab equipment and more from students around your college.
+                Find affordable IPE, EAPCET, JEE, and NEET preparation books from students around your college.
               </p>
             </motion.div>
 
@@ -159,7 +173,7 @@ export default function HomePage() {
             />
             <div className="absolute bottom-5 left-5 right-5 rounded-[26px] bg-white/92 p-5 shadow-soft backdrop-blur dark:bg-slate-950/88">
               <p className="text-sm font-black uppercase tracking-[0.22em] text-orange-500">Campus-ready</p>
-              <p className="mt-2 text-lg font-black">Books, gear and essentials from real student listings.</p>
+              <p className="mt-2 text-lg font-black">Engineering & Medical prep books from real student listings.</p>
             </div>
           </motion.div>
         </div>
@@ -177,19 +191,26 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Horizontal scroll on mobile, grid on desktop */}
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-6">
-          {categoryTiles.map(({ label, icon: Icon, category }) => (
-            <button
-              key={label}
-              onClick={() => applyCategory(category)}
-              className="group flex-none w-36 sm:w-auto rounded-[24px] border border-transparent bg-white p-4 text-center shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-orange-100 hover:shadow-soft-lg dark:bg-white/10"
-            >
-              <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100 text-orange-500 transition-transform duration-300 group-hover:scale-105 dark:bg-orange-500/15">
-                <Icon size={24} />
-              </span>
-              <span className="block text-xs font-black leading-snug sm:text-sm">{label}</span>
-            </button>
+        {/* Category Groups */}
+        <div className="grid gap-6 sm:grid-cols-3">
+          {categoryGroups.map((group) => (
+            <div key={group.title} className="rounded-3xl border border-border/10 bg-white p-5 shadow-soft dark:bg-white/5">
+              <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-ink-secondary">{group.title}</h3>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {group.items.map(({ label, icon: Icon, category }) => (
+                  <button
+                    key={label}
+                    onClick={() => applyCategory(category)}
+                    className="group flex-none w-32 rounded-[20px] border border-transparent bg-[#f8f6f3] p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:border-orange-100 hover:bg-orange-50 hover:shadow-soft-lg dark:bg-white/10 dark:hover:bg-orange-500/10"
+                  >
+                    <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white text-orange-500 shadow-sm transition-transform duration-300 group-hover:scale-105 dark:bg-white/10">
+                      <Icon size={20} />
+                    </span>
+                    <span className="block text-xs font-black sm:text-sm">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </section>
@@ -306,7 +327,7 @@ export default function HomePage() {
                 Save More on<br />College Essentials
               </h2>
               <p className="mt-5 text-sm leading-relaxed text-slate-300 sm:text-lg">
-                Buy affordable second-hand items from students near you and save every semester.
+                Buy affordable second-hand prep books from students near you and save on your preparation.
               </p>
               <a
                 href="#listings"
@@ -333,7 +354,7 @@ export default function HomePage() {
               Sell<span className="text-orange-500">Chey</span>
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
-              India's student marketplace for books, notes, gadgets and college essentials.
+              India's student marketplace for Engineering and Medical prep books.
             </p>
           </div>
           <div>
@@ -344,10 +365,10 @@ export default function HomePage() {
               Marketplace
             </button>
             <ul className="space-y-2 text-sm text-ink-secondary">
-              {(["book", "equipment", "electronics", "notes"] as const).map((cat) => (
+              {(["ipe", "eapcet", "jee", "neet"] as const).map((cat) => (
                 <li key={cat}>
-                  <button onClick={() => applyCategory(cat)} className="hover:text-orange-500 transition-colors capitalize">
-                    {cat === "book" ? "Books" : cat === "equipment" ? "Equipment" : cat === "electronics" ? "Electronics" : "Notes"}
+                  <button onClick={() => applyCategory(cat)} className="hover:text-orange-500 transition-colors uppercase font-semibold text-xs tracking-wider">
+                    {cat} Books
                   </button>
                 </li>
               ))}

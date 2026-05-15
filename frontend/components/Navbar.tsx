@@ -59,7 +59,7 @@ export default function Navbar() {
             className="hidden min-w-0 flex-1 items-center gap-3 rounded-full bg-[#f5f2ee] px-5 py-2.5 text-sm font-semibold text-ink-secondary transition-colors hover:bg-orange-50 lg:flex dark:bg-white/10 max-w-md"
           >
             <Search size={18} className="shrink-0 text-orange-500" />
-            <span className="truncate">Search books, calculators, notes...</span>
+            <span className="truncate">Search IPE, JEE, NEET books...</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -188,7 +188,7 @@ export default function Navbar() {
                   className="flex w-full items-center gap-3 rounded-full bg-[#f5f2ee] px-5 py-3 text-sm font-semibold text-ink-secondary dark:bg-white/10"
                 >
                   <Search size={18} className="shrink-0 text-orange-500" />
-                  <span className="truncate text-ink-tertiary">Search books, calculators, notes...</span>
+                  <span className="truncate text-ink-tertiary">Search IPE, JEE, NEET books...</span>
                 </Link>
               </div>
             </motion.div>

@@ -15,8 +15,9 @@ import {
   Phone,
   Share2,
   ShieldCheck,
-  Smartphone,
-  NotebookText
+  ShieldCheck,
+  Stethoscope,
+  FlaskConical
 } from "lucide-react";
 import type { User, Product } from "@/lib/types";
 
@@ -74,10 +75,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const whatsappText = encodeURIComponent(`Hi, I saw your ${product.title} listing on SellChey. Is it available?`);
   const CategoryIcon = (() => {
     switch (product.category) {
-      case "book": return BookOpen;
-      case "equipment": return Cpu;
-      case "electronics": return Smartphone;
-      case "notes": return NotebookText;
+      case "ipe": return BookOpen;
+      case "eapcet": return FlaskConical;
+      case "jee": return Cpu;
+      case "neet": return Stethoscope;
       default: return BookOpen;
     }
   })();

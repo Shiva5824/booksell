@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Cpu, IndianRupee, MapPin, RefreshCcw, Search, SlidersHorizontal, X, Smartphone, NotebookText } from "lucide-react";
+import { BookOpen, Cpu, IndianRupee, MapPin, RefreshCcw, Search, SlidersHorizontal, X, Stethoscope, FlaskConical } from "lucide-react";
 import type { ProductFilters } from "@/lib/types";
 
 interface SearchBarProps {
@@ -13,10 +13,10 @@ interface SearchBarProps {
 
 const CATEGORIES = [
   { label: "All Items", value: "", icon: SlidersHorizontal },
-  { label: "Books", value: "book", icon: BookOpen },
-  { label: "Equipment", value: "equipment", icon: Cpu },
-  { label: "Electronics", value: "electronics", icon: Smartphone },
-  { label: "Notes", value: "notes", icon: NotebookText },
+  { label: "IPE", value: "ipe", icon: BookOpen },
+  { label: "EAPCET", value: "eapcet", icon: FlaskConical },
+  { label: "JEE", value: "jee", icon: Cpu },
+  { label: "NEET", value: "neet", icon: Stethoscope },
 ];
 
 export default function SearchBar({ filters, onChange, resultCount }: SearchBarProps) {
@@ -41,7 +41,7 @@ export default function SearchBar({ filters, onChange, resultCount }: SearchBarP
             <input
               value={filters.q || ""}
               onChange={(e) => patch({ q: e.target.value })}
-              placeholder="Search books, lab gear, calculators..."
+              placeholder="Search books..."
               className="w-full border-0 bg-transparent p-0 text-sm font-semibold text-ink placeholder:text-ink-tertiary focus:ring-0 outline-none sm:text-base"
             />
             {filters.q && (
