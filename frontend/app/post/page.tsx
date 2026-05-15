@@ -16,6 +16,7 @@ import {
   Lock,
   MapPin,
   NotebookText,
+  Smartphone,
   ShieldCheck,
   Stethoscope,
   FlaskConical,
