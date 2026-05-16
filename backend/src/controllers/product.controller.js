@@ -17,17 +17,17 @@ export async function listProducts(req, res) {
     }
 
     // Category filter
-    if (category) {
+    if (category && typeof category === "string" && category.trim() !== "") {
       query.category = category;
     }
 
     // Condition filter
-    if (condition) {
+    if (condition && typeof condition === "string" && condition.trim() !== "") {
       query.condition = condition;
     }
 
     // College filter
-    if (college) {
+    if (college && typeof college === "string" && college.trim() !== "") {
       query.college = college;
     }
 

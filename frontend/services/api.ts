@@ -10,9 +10,32 @@ const getAuthHeader = () => {
 // ===== PRODUCT ENDPOINTS =====
 
 export async function getProducts(filters: any = {}) {
+  // Map frontend filter keys to backend expected keys
+  const params: any = { ...filters };
+
+  if (params.q) {
+    params.search = params.q;
+    delete params.q;
+  }
+  if (params.min) {
+    params.minPrice = params.min;
+    delete params.min;
+  }
+  if (params.max) {
+    params.maxPrice = params.max;
+    delete params.max;
+  }
+
+  // Clean up empty strings, null or undefined values to ensure backend ignores them
+  Object.keys(params).forEach((key) => {
+    if (params[key] === "" || params[key] === null || params[key] === undefined) {
+      delete params[key];
+    }
+  });
+
   try {
     const response = await axios.get(`${API_BASE_URL}/products`, {
-      params: filters,
+      params,
     });
     return response.data.data || [];
   } catch (error) {
