@@ -96,12 +96,12 @@ export default function ProfilePage() {
   const activeCount = products.filter((p) => p.status === "active").length;
   const soldCount = products.filter((p) => p.status === "sold").length;
 
-  const displayName = user.displayName || user.email?.split("@")[0] || "Seller";
-  const avatarUrl = user.photoURL;
+  const displayName = backendUser?.name || user.displayName || user.email?.split("@")[0] || "Seller";
+  const avatarUrl = backendUser?.avatar || user.photoURL;
   const initial = displayName[0].toUpperCase();
 
   return (
-    <main className="bg-gradient-to-b from-surface-secondary via-surface-bg to-surface-secondary min-h-screen">
+    <main className="bg-gradient-to-b from-surface-secondary via-surface-bg to-surface-secondary min-h-screen pb-32 sm:pb-12">
       <div className="mx-auto max-w-7xl px-4 py-8">
 
         {/* Profile Header Card */}
@@ -195,20 +195,20 @@ export default function ProfilePage() {
         {/* Seller Dashboard */}
         <section>
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-3xl font-black text-ink">Your Listings</h2>
-              <p className="text-ink-secondary mt-2">Manage your listings, mark items sold, and chat with buyers.</p>
+            <div className="text-center sm:text-left">
+              <h2 className="text-2xl sm:text-3xl font-black text-ink">Your Listings</h2>
+              <p className="text-xs sm:text-sm text-ink-secondary mt-1 sm:mt-2">Manage your listings and mark items sold.</p>
             </div>
-            <Link href="/chat" className="btn-primary justify-center sm:justify-start">
+            <Link href="/chat" className="btn-primary justify-center sm:justify-start py-3 text-sm">
               <MessageCircle size={18} />
-              <span className="hidden sm:inline">View Messages</span>
+              View Messages
             </Link>
           </div>
 
           {productsLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="rounded-2xl bg-surface-secondary h-72 animate-pulse" />
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="rounded-2xl bg-surface-secondary h-48 sm:h-72 animate-pulse" />
               ))}
             </div>
           ) : products.length === 0 ? (
@@ -227,30 +227,29 @@ export default function ProfilePage() {
               </div>
             </motion.div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-3">
               {products.map((product) => (
                 <div key={product._id} className="space-y-3">
                   <ProductCard product={product} />
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <button 
                       onClick={() => handleMarkAsSold(product._id)}
                       disabled={product.status === "sold"}
-                      className="rounded-xl bg-primary-light text-primary px-3 py-2.5 text-sm font-bold transition-smooth hover:bg-primary hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="col-span-2 sm:col-span-1 rounded-xl bg-primary-light text-primary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-primary hover:text-white disabled:opacity-50"
                     >
                       {product.status === "sold" ? "Sold" : "Mark Sold"}
                     </button>
                     <button 
                       onClick={() => handleEditClick(product)}
-                      className="rounded-xl border border-border bg-surface-bg text-ink-secondary px-3 py-2.5 text-sm font-bold transition-smooth hover:bg-surface-secondary"
+                      className="rounded-xl border border-border bg-surface-bg text-ink-secondary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-surface-secondary"
                     >
                       Edit
                     </button>
                     <button 
                       onClick={() => handleDeleteClick(product)}
-                      className="flex items-center justify-center rounded-xl border border-border bg-surface-bg text-secondary px-3 py-2.5 text-sm font-bold transition-smooth hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400" 
-                      aria-label={`Delete ${product.title}`}
+                      className="flex items-center justify-center rounded-xl border border-border bg-surface-bg text-secondary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400" 
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>

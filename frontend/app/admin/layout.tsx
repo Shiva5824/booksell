@@ -74,19 +74,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:pl-64">
+      <main className="flex-1 lg:pl-64 min-w-0 overflow-x-hidden">
         {/* Mobile Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/10 bg-background/80 px-6 py-4 backdrop-blur-md lg:hidden">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="text-primary" size={24} />
-            <span className="text-lg font-black text-ink">Admin Panel</span>
+        <header className="sticky top-0 z-30 border-b border-border/10 bg-background/80 backdrop-blur-md lg:hidden">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="text-primary" size={24} />
+              <span className="text-lg font-black text-ink">Admin Panel</span>
+            </div>
+            <Link href="/" className="rounded-lg p-2 text-ink-secondary hover:bg-surface-glass">
+              <ArrowLeft size={20} />
+            </Link>
           </div>
-          <Link href="/" className="rounded-lg p-2 text-ink-secondary hover:bg-surface-glass">
-            <ArrowLeft size={20} />
-          </Link>
+          
+          {/* Mobile Navigation Pills */}
+          <nav className="flex gap-2 px-4 pb-4 overflow-x-auto scrollbar-hide">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex flex-none items-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-wider transition-all ${
+                    isActive
+                      ? "bg-primary text-white shadow-glow-primary"
+                      : "bg-surface-secondary text-ink-secondary border border-border/10"
+                  }`}
+                >
+                  <item.icon size={14} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </header>
 
-        <div className="min-h-screen p-6 lg:p-10">
+        <div className="min-h-screen p-4 sm:p-6 lg:p-10 pb-32 sm:pb-10 overflow-x-hidden">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

@@ -22,7 +22,14 @@ export default function ProductCard({ product }: { product: Product }) {
     }
   })();
   const seller = typeof product.sellerId === "string" ? null : (product.sellerId as User);
-  const dateLabel = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(new Date(product.createdAt));
+  const dateObj = new Date(product.createdAt);
+  const dateLabel = new Intl.DateTimeFormat("en-IN", { 
+    day: "numeric", 
+    month: "short",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true 
+  }).format(dateObj).replace(" at ", ", ");
 
   return (
     <motion.article
@@ -110,23 +117,33 @@ export default function ProductCard({ product }: { product: Product }) {
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border/10 pt-3">
+        <div className="flex flex-col gap-3 border-t border-border/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="h-7 w-7 shrink-0 rounded-full bg-slate-900 flex items-center justify-center text-white shadow-soft dark:bg-orange-500">
-              <UserRound size={13} />
-            </div>
+            {seller?.avatar ? (
+              <Image 
+                src={seller.avatar} 
+                alt="" 
+                width={24} 
+                height={24} 
+                className="h-6 w-6 sm:h-7 sm:w-7 shrink-0 rounded-full object-cover border border-border/10 shadow-sm" 
+              />
+            ) : (
+              <div className="h-6 w-6 sm:h-7 sm:w-7 shrink-0 rounded-full bg-slate-900 flex items-center justify-center text-white shadow-soft dark:bg-orange-500">
+                <UserRound size={11} />
+              </div>
+            )}
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-ink truncate max-w-[90px]">{seller?.name || "Verified seller"}</span>
-              <span className="text-[10px] font-semibold text-ink-tertiary flex items-center gap-1">
-                <Clock3 size={9} />{dateLabel}
+              <span className="text-[10px] sm:text-xs font-bold text-ink truncate max-w-[80px] sm:max-w-[90px]">{seller?.name?.split(" ")[0] || "Seller"}</span>
+              <span className="text-[9px] sm:text-[10px] font-semibold text-ink-tertiary flex items-center gap-1">
+                <Clock3 size={8} />{dateLabel.split(",")[0]}
               </span>
             </div>
           </div>
           <Link
             href={`/chat?product=${product._id}`}
-            className="flex items-center justify-center gap-1.5 rounded-full bg-slate-900 px-3 py-2 text-xs font-black text-white transition-all duration-300 hover:bg-orange-500 active:scale-95 sm:px-4 sm:text-sm"
+            className="flex items-center justify-center gap-1.5 rounded-full bg-slate-900 px-3 py-2 text-[10px] font-black text-white transition-all duration-300 hover:bg-orange-500 active:scale-95 sm:px-4 sm:py-2 sm:text-xs"
           >
-            <MessageCircle size={15} />
+            <MessageCircle size={14} />
             <span>Contact</span>
           </Link>
         </div>

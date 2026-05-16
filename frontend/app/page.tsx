@@ -23,27 +23,11 @@ const fadeUp: any = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 260, damping: 24 } },
 };
 
-const categoryGroups = [
-  {
-    title: "Engineering",
-    items: [
-      { label: "JEE", icon: Cpu, category: "jee" as const },
-      { label: "EAPCET", icon: FlaskConical, category: "eapcet" as const },
-    ]
-  },
-  {
-    title: "Medical",
-    items: [
-      { label: "NEET", icon: Stethoscope, category: "neet" as const },
-      { label: "EAPCET", icon: FlaskConical, category: "eapcet" as const },
-    ]
-  },
-  {
-    title: "State Board",
-    items: [
-      { label: "IPE", icon: BookOpen, category: "ipe" as const }
-    ]
-  }
+const mainCategories = [
+  { label: "JEE", icon: Cpu, category: "jee" as const, description: "Engineering Prep" },
+  { label: "NEET", icon: Stethoscope, category: "neet" as const, description: "Medical Prep" },
+  { label: "EAPCET", icon: FlaskConical, category: "eapcet" as const, description: "State Eng & Med" },
+  { label: "IPE", icon: BookOpen, category: "ipe" as const, description: "State Board Exams" }
 ];
 
 function SkeletonCard() {
@@ -193,26 +177,20 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Category Groups */}
-        <div className="grid gap-6 sm:grid-cols-3">
-          {categoryGroups.map((group) => (
-            <div key={group.title} className="rounded-3xl border border-border/10 bg-white p-5 shadow-soft dark:bg-white/5">
-              <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-ink-secondary">{group.title}</h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {group.items.map(({ label, icon: Icon, category }) => (
-                  <button
-                    key={label}
-                    onClick={() => applyCategory(category)}
-                    className="group flex-none w-32 rounded-[20px] border border-transparent bg-[#f8f6f3] p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:border-orange-100 hover:bg-orange-50 hover:shadow-soft-lg dark:bg-white/10 dark:hover:bg-orange-500/10"
-                  >
-                    <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white text-orange-500 shadow-sm transition-transform duration-300 group-hover:scale-105 dark:bg-white/10">
-                      <Icon size={20} />
-                    </span>
-                    <span className="block text-xs font-black sm:text-sm">{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Category List */}
+        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide sm:grid sm:grid-cols-4 sm:gap-6">
+          {mainCategories.map(({ label, icon: Icon, category, description }) => (
+            <button
+              key={label}
+              onClick={() => applyCategory(category)}
+              className="group flex-none w-32 sm:w-auto rounded-[24px] border border-border/10 bg-white p-4 sm:p-5 text-center transition-all duration-300 hover:-translate-y-1 hover:border-orange-100 hover:bg-orange-50 hover:shadow-soft-lg dark:bg-white/5 dark:hover:bg-orange-500/10"
+            >
+              <span className="mx-auto mb-3 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-[#f8f6f3] text-orange-500 shadow-sm transition-transform duration-300 group-hover:scale-105 dark:bg-white/10">
+                <Icon size={20} className="sm:size-22" />
+              </span>
+              <span className="block text-sm font-black sm:text-base">{label}</span>
+              <span className="mt-1 block text-[10px] sm:text-xs font-semibold text-ink-secondary">{description}</span>
+            </button>
           ))}
         </div>
       </section>
@@ -254,7 +232,7 @@ export default function HomePage() {
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
-              className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:gap-7"
+              className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 xl:gap-7"
             >
               {visibleProducts.map((product) => (
                 <ProductCard key={product._id} product={product} />
@@ -349,47 +327,46 @@ export default function HomePage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-border/10 bg-white dark:bg-slate-950">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 sm:grid-cols-2 lg:grid-cols-4">
+      <footer className="border-t border-border/10 bg-white dark:bg-slate-950 pb-nav sm:pb-0">
+        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 grid-cols-4 lg:grid-cols-4">
           <div>
-            <h3 className="text-xl font-black">
+            <h3 className="text-sm sm:text-xl font-black">
               Sell<span className="text-orange-500">Chey</span>
             </h3>
-            <p className="mt-3 text-sm leading-relaxed text-ink-secondary">
+            <p className="mt-2 text-[10px] sm:text-sm leading-tight text-ink-secondary hidden sm:block">
               India's student marketplace for Engineering and Medical prep books.
             </p>
           </div>
           <div>
             <button
               onClick={() => document.getElementById("listings")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="mb-3 block font-black hover:text-orange-500 transition-colors"
+              className="mb-2 block font-black hover:text-orange-500 transition-colors text-[10px] sm:text-base text-left"
             >
-              Marketplace
+              Market
             </button>
-            <ul className="space-y-2 text-sm text-ink-secondary">
+            <ul className="space-y-1 text-[10px] sm:text-sm text-ink-secondary">
               {(["ipe", "eapcet", "jee", "neet"] as const).map((cat) => (
                 <li key={cat}>
-                  <button onClick={() => applyCategory(cat)} className="hover:text-orange-500 transition-colors uppercase font-semibold text-xs tracking-wider">
-                    {cat} Books
+                  <button onClick={() => applyCategory(cat)} className="hover:text-orange-500 transition-colors uppercase font-semibold text-[9px] sm:text-xs tracking-wider">
+                    {cat}
                   </button>
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <h4 className="mb-3 font-black">Company</h4>
-            <ul className="space-y-2 text-sm text-ink-secondary">
+            <h4 className="mb-2 font-black text-[10px] sm:text-base">Links</h4>
+            <ul className="space-y-1 text-[10px] sm:text-sm text-ink-secondary">
               <li><span className="hover:text-orange-500 transition-colors cursor-pointer">About</span></li>
-              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Support</span></li>
+              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Help</span></li>
               <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Contact</span></li>
-              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Privacy Policy</span></li>
             </ul>
           </div>
           <div>
-            <h4 className="mb-3 font-black">Get Started</h4>
-            <Link href="/post" className="btn-primary text-sm">
-              <Plus size={16} />
-              Post Listing
+            <h4 className="mb-2 font-black text-[10px] sm:text-base">Post</h4>
+            <Link href="/post" className="btn-primary p-2 text-[10px] sm:text-sm sm:p-3">
+              <Plus size={12} className="sm:size-4" />
+              <span className="hidden sm:inline">Listing</span>
             </Link>
           </div>
         </div>

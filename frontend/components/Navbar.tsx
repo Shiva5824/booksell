@@ -109,17 +109,23 @@ export default function Navbar() {
                   )}
                   <Link
                     href="/profile"
-                    className="flex items-center gap-2 rounded-full border border-border/10 bg-surface px-3 py-1.5 transition-smooth hover:bg-orange-50"
+                    className="flex items-center gap-2 rounded-full border border-border/10 bg-surface px-2 py-1.5 transition-smooth hover:bg-orange-50 pr-4"
                   >
-                    {user.photoURL ? (
-                      <Image src={user.photoURL} alt={user.displayName || "User"} width={26} height={26} className="rounded-full object-cover" />
+                    {dbUser?.avatar || user.photoURL ? (
+                      <Image 
+                        src={dbUser?.avatar || user.photoURL || ""} 
+                        alt={dbUser?.name || user.displayName || "User"} 
+                        width={28} 
+                        height={28} 
+                        className="rounded-full object-cover border border-border/10 h-7 w-7" 
+                      />
                     ) : (
-                      <div className="h-6 w-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-black">
-                        {(user.displayName || user.email || "U")[0].toUpperCase()}
+                      <div className="h-7 w-7 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-black border border-border/10">
+                        {(dbUser?.name || user.displayName || user.email || "U")[0].toUpperCase()}
                       </div>
                     )}
                     <span className="text-sm font-bold text-ink truncate max-w-[90px]">
-                      {user.displayName || user.email?.split("@")[0]}
+                      {dbUser?.name?.split(" ")[0] || user.displayName?.split(" ")[0] || user.email?.split("@")[0]}
                     </span>
                   </Link>
                   <motion.button
@@ -157,6 +163,17 @@ export default function Navbar() {
             >
               {mobileSearchOpen ? <X size={18} /> : <Search size={18} />}
             </motion.button>
+
+            {/* Admin Dashboard (Mobile) */}
+            {dbUser?.role === "admin" && (
+              <Link
+                href="/admin"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary tap-highlight-none"
+                title="Admin Dashboard"
+              >
+                <LayoutDashboard size={18} />
+              </Link>
+            )}
 
             <ThemeToggle />
 

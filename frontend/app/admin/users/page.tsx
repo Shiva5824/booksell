@@ -108,7 +108,8 @@ export default function UserManagement() {
       </div>
 
       <div className="overflow-hidden rounded-[32px] border border-border/10 bg-surface-bg shadow-card">
-        <div className="overflow-x-auto">
+        {/* Desktop View */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-tertiary/50">
@@ -210,16 +211,100 @@ export default function UserManagement() {
               </AnimatePresence>
             </tbody>
           </table>
-          {filteredUsers.length === 0 && !loading && (
-            <div className="flex flex-col items-center justify-center p-20 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-tertiary text-ink-tertiary">
-                <Search size={32} />
-              </div>
-              <p className="text-lg font-black text-ink">No users found</p>
-              <p className="text-sm font-medium text-ink-secondary">Try adjusting your search terms.</p>
-            </div>
-          )}
         </div>
+
+        {/* Mobile View */}
+        <div className="block lg:hidden p-4 space-y-4">
+          <AnimatePresence>
+            {filteredUsers.map((user) => (
+              <motion.div
+                key={user._id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="rounded-2xl border border-border/5 bg-surface-secondary/40 p-4 space-y-4"
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-border/10 bg-surface-tertiary">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center font-bold text-ink-tertiary">
+                        {user.name[0]}
+                      </div>
+                    )}
+                    {user.role === "admin" && (
+                      <div className="absolute -right-1 -top-1 rounded-full bg-primary p-0.5 text-white border border-surface-bg">
+                        <Shield size={8} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-ink truncate">{user.name}</p>
+                    <p className="text-xs font-semibold text-ink-secondary truncate">{user.email}</p>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-ink-secondary">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin size={12} className="text-primary/60 shrink-0" />
+                    <span className="truncate">{user.college || "No College"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar size={12} className="text-ink-tertiary shrink-0" />
+                    <span>{new Date(user.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+
+                {/* Status Badges & Action Buttons */}
+                <div className="flex items-center justify-between border-t border-border/5 pt-3">
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
+                    user.isActive ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                  }`}>
+                    {user.isActive ? "Active" : "Disabled"}
+                  </span>
+                  
+                  <div className="flex gap-1.5">
+                    <button 
+                      onClick={() => handleRoleToggle(user._id)}
+                      className={`rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase transition-all ${
+                        user.role === "admin" 
+                          ? "bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white" 
+                          : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                      }`}
+                    >
+                      {user.role === "admin" ? "Demote" : "Promote"}
+                    </button>
+
+                    <button 
+                      onClick={() => handleToggle(user._id)}
+                      disabled={user.role === "admin" && user.firebaseUid === currentUser?.firebaseUid}
+                      className={`rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase transition-all disabled:opacity-30 ${
+                        user.isActive 
+                          ? "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white" 
+                          : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
+                      }`}
+                    >
+                      {user.isActive ? "Disable" : "Enable"}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {filteredUsers.length === 0 && !loading && (
+          <div className="flex flex-col items-center justify-center p-20 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-tertiary text-ink-tertiary">
+              <Search size={32} />
+            </div>
+            <p className="text-lg font-black text-ink">No users found</p>
+            <p className="text-sm font-medium text-ink-secondary">Try adjusting your search terms.</p>
+          </div>
+        )}
       </div>
     </div>
   );

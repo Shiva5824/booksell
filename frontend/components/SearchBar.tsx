@@ -96,7 +96,7 @@ export default function SearchBar({ filters, onChange, resultCount }: SearchBarP
                   key={label}
                   type="button"
                   onClick={() => patch({ category: value as ProductFilters["category"] })}
-                  className={`relative flex min-w-max items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-black whitespace-nowrap transition-all duration-300 ${
+                  className={`relative flex min-w-max items-center gap-1.5 sm:gap-2 rounded-full border px-3 sm:px-4 py-1.5 sm:py-2.5 text-[11px] sm:text-sm font-black whitespace-nowrap transition-all duration-300 ${
                     active
                       ? "border-orange-500 text-white shadow-glow-primary"
                       : "border-border/10 bg-[#f8f6f3] text-ink-secondary hover:bg-orange-50 hover:text-orange-500 dark:bg-white/10"
@@ -109,7 +109,7 @@ export default function SearchBar({ filters, onChange, resultCount }: SearchBarP
                       transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     />
                   )}
-                  <Icon size={16} className="relative z-10" />
+                  <Icon size={14} className="relative z-10 sm:size-4" />
                   <span className="relative z-10">{label}</span>
                 </button>
               );
