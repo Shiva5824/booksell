@@ -44,7 +44,7 @@ export async function getUser(req, res) {
  */
 export async function updateUserProfile(req, res) {
   try {
-    const { name, avatar, phone } = req.body;
+    const { name, avatar, phone, college } = req.body;
     const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -72,6 +72,9 @@ export async function updateUserProfile(req, res) {
     }
     if (phone !== undefined) {
       user.phone = phone;
+    }
+    if (college !== undefined) {
+      user.college = college;
     }
 
     await user.save();

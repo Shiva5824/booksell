@@ -28,6 +28,10 @@ export async function requireAuth(req, res, next) {
     const user = await User.findOne({ firebaseUid: decoded.uid });
     console.log("User lookup for Firebase UID", decoded.uid, "found:", !!user);
 
+    if (user && user.isActive === false) {
+      return res.status(403).json({ message: "Your account has been disabled by an administrator." });
+    }
+
     req.firebaseUser = decoded;
     req.user = user;
     next();

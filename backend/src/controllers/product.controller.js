@@ -9,7 +9,7 @@ export async function listProducts(req, res) {
   try {
     const { sort = "newest", category, condition, college, minPrice, maxPrice, search } = req.query;
 
-    let query = {};
+    let query = { isAdminDisabled: { $ne: true } };
 
     // Text search
     if (search) {

@@ -172,3 +172,76 @@ export async function getCurrentUser() {
     return null;
   }
 }
+// ===== ADMIN ENDPOINTS =====
+
+export async function getAdminStats() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/admin/stats`, {
+      headers: getAuthHeader(),
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error("Error fetching admin stats:", error);
+    throw error;
+  }
+}
+
+export async function getAdminUsers() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/admin/users`, {
+      headers: getAuthHeader(),
+    });
+    return response.data.data || [];
+  } catch (error) {
+    console.error("Error fetching admin users:", error);
+    return [];
+  }
+}
+
+export async function toggleUserActive(id: string) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/admin/users/${id}/toggle`, {}, {
+      headers: getAuthHeader(),
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error("Error toggling user status:", error);
+    throw error;
+  }
+}
+
+export async function getAdminProducts() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/admin/products`, {
+      headers: getAuthHeader(),
+    });
+    return response.data.data || [];
+  } catch (error) {
+    console.error("Error fetching admin products:", error);
+    return [];
+  }
+}
+
+export async function toggleProductDisabled(id: string) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/admin/products/${id}/toggle`, {}, {
+      headers: getAuthHeader(),
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error("Error toggling product status:", error);
+    throw error;
+  }
+}
+
+export async function toggleUserRole(id: string) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/admin/users/${id}/role`, {}, {
+      headers: getAuthHeader(),
+    });
+    return response.data.data;
+  } catch (error) {
+    console.error("Error toggling user role:", error);
+    throw error;
+  }
+}

@@ -18,7 +18,8 @@ export async function login(req, res, next) {
         $set: {
           name: payload.name || req.firebaseUser.displayName || "User",
           avatar: payload.avatar || "",
-          college: payload.college || ""
+          college: payload.college || "",
+          lastLogin: new Date()
         }
       },
       { upsert: true, new: true }

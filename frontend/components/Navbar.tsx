@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, MessageCircle, Plus, Search, ShoppingBag, UserRound, X } from "lucide-react";
+import { LayoutDashboard, LogOut, MessageCircle, Plus, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ThemeToggle from "./ThemeToggle";
@@ -24,7 +24,7 @@ const guestBottomLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, dbUser } = useAuth();
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   const bottomLinks = user ? authLinks : guestBottomLinks;
@@ -98,6 +98,15 @@ export default function Navbar() {
             {!loading && (
               user ? (
                 <div className="flex items-center gap-2">
+                  {dbUser?.role === "admin" && (
+                    <Link
+                      href="/admin"
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-primary/5 text-primary transition-smooth hover:bg-primary hover:text-white"
+                      title="Admin Dashboard"
+                    >
+                      <LayoutDashboard size={18} />
+                    </Link>
+                  )}
                   <Link
                     href="/profile"
                     className="flex items-center gap-2 rounded-full border border-border/10 bg-surface px-3 py-1.5 transition-smooth hover:bg-orange-50"

@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import EditListingModal from "@/components/EditListingModal";
+import EditProfileModal from "@/components/EditProfileModal";
 import { deleteProduct, getProducts, getUserProducts, markProductAsSold, getCurrentUser } from "@/services/api";
 import type { Product, User as BackendUser } from "@/lib/types";
 
@@ -30,6 +31,7 @@ export default function ProfilePage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
@@ -106,67 +108,82 @@ export default function ProfilePage() {
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border bg-surface-bg p-6 shadow-soft mb-8"
+          className="rounded-3xl border border-border/10 bg-surface-bg p-5 sm:p-8 shadow-card mb-8"
         >
-          <div className="grid gap-6 lg:grid-cols-[auto_1fr_auto] lg:items-center">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
             {/* Avatar & Info */}
-            <div className="flex items-center gap-5">
-              {avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt={displayName}
-                  width={96}
-                  height={96}
-                  className="h-24 w-24 rounded-2xl object-cover border-2 border-primary"
-                />
-              ) : (
-                <div className="h-24 w-24 rounded-2xl bg-gradient-primary flex items-center justify-center text-white text-4xl font-black border-2 border-primary shadow-glow-primary">
-                  {initial}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6">
+              <div className="relative group">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={displayName}
+                    width={110}
+                    height={110}
+                    className="h-24 w-24 sm:h-28 sm:w-28 rounded-[32px] object-cover border-4 border-surface-secondary shadow-lg"
+                  />
+                ) : (
+                  <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-[32px] bg-gradient-primary flex items-center justify-center text-white text-4xl font-black border-4 border-surface-secondary shadow-glow-primary">
+                    {initial}
+                  </div>
+                )}
+                <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-emerald-500 border-4 border-surface-bg flex items-center justify-center text-white shadow-lg">
+                  <ShieldCheck size={14} />
                 </div>
-              )}
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <h1 className="truncate text-3xl font-black text-ink">{displayName}</h1>
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary-light px-3 py-1 text-xs font-bold text-primary">
-                    <ShieldCheck size={14} /> Verified
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <h1 className="text-3xl sm:text-4xl font-black text-ink tracking-tight">{displayName}</h1>
+                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-primary">
+                    Verified Seller
                   </span>
                 </div>
-                <p className="font-semibold text-ink-secondary">{user.email || user.phoneNumber || ""}</p>
-                {user.phoneNumber && <p className="text-sm text-ink-tertiary mt-1">{user.phoneNumber}</p>}
+                <p className="text-sm sm:text-base font-bold text-ink-secondary">{user.email || user.phoneNumber || ""}</p>
+                {backendUser?.college && (
+                  <div className="inline-flex items-center gap-2 rounded-xl bg-surface-secondary px-3 py-1.5 text-xs font-black text-primary border border-primary/5">
+                    <CheckCircle2 size={14} /> {backendUser.college}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="grid gap-2 sm:grid-cols-3 lg:justify-self-end">
-              <Link href="/post" className="btn-primary justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <Link href="/post" className="btn-primary justify-center px-6 py-4 sm:py-3 text-sm flex-1 sm:flex-none">
                 <Plus size={18} />
-                <span className="hidden sm:inline">New Listing</span>
+                New Listing
               </Link>
-              <button className="btn-secondary justify-center">
+              <button 
+                onClick={() => setIsProfileModalOpen(true)}
+                className="btn-secondary justify-center px-6 py-4 sm:py-3 text-sm flex-1 sm:flex-none"
+              >
                 <Edit3 size={18} />
-                <span className="hidden sm:inline">Edit Profile</span>
+                Edit Profile
               </button>
               <button
                 onClick={async () => { await logout(); router.replace("/"); }}
-                className="btn-secondary justify-center text-red-400 hover:bg-red-500/10 hover:border-red-500/30"
+                className="btn-secondary justify-center px-6 py-4 sm:py-3 text-sm flex-1 sm:flex-none text-red-500 hover:bg-red-500/10 hover:border-red-500/20"
               >
                 <LogOut size={18} />
-                <span className="hidden sm:inline">Sign Out</span>
+                Sign Out
               </button>
             </div>
           </div>
 
           {/* Stats */}
-          <div className="mt-6 grid gap-3 border-t border-border pt-6 sm:grid-cols-4">
+          <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4 border-t border-border/10 pt-8">
             {[
-              { label: "Listings", value: products.length, icon: PackageCheck },
-              { label: "Active", value: activeCount, icon: TrendingUp },
-              { label: "Sold", value: soldCount, icon: CheckCircle2 },
-              { label: "Favorites", value: 0, icon: Heart },
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-xl bg-surface-secondary p-4">
-                <div className="flex items-center gap-2.5 text-sm font-semibold text-ink-secondary mb-2">
-                  <Icon size={18} className="text-primary" />
+              { label: "Total Items", value: products.length, icon: PackageCheck, bg: "bg-blue-500/5", text: "text-blue-500" },
+              { label: "Active Now", value: activeCount, icon: TrendingUp, bg: "bg-emerald-500/5", text: "text-emerald-500" },
+              { label: "Items Sold", value: soldCount, icon: CheckCircle2, bg: "bg-purple-500/5", text: "text-purple-500" },
+              { label: "Favorites", value: 0, icon: Heart, bg: "bg-red-500/5", text: "text-red-500" },
+            ].map(({ label, value, icon: Icon, bg, text }) => (
+              <div key={label} className={`rounded-3xl ${bg} p-5 border border-border/5 group hover:border-border/10 transition-all`}>
+                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-ink-tertiary mb-3">
+                  <div className={`p-1.5 rounded-lg ${bg} ${text}`}>
+                    <Icon size={14} />
+                  </div>
                   {label}
                 </div>
                 <p className="text-3xl font-black text-ink">{value}</p>
@@ -259,6 +276,11 @@ export default function ProfilePage() {
           product={selectedProduct}
         />
       )}
+
+      <EditProfileModal 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </main>
   );
 }

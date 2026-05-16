@@ -16,7 +16,8 @@ const productSchema = new mongoose.Schema(
     description: { type: String, required: true, trim: true },
     college: { type: String, required: true, trim: true, index: true },
     sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    status: { type: String, enum: ["active", "sold"], default: "active", index: true }
+    status: { type: String, enum: ["active", "sold"], default: "active", index: true },
+    isAdminDisabled: { type: Boolean, default: false, index: true }
   },
   { timestamps: true }
 );

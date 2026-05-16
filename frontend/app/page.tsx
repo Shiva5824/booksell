@@ -171,9 +171,11 @@ export default function HomePage() {
               alt="Students browsing books in a library"
               className="relative h-[610px] w-full rounded-[34px] object-cover shadow-2xl"
             />
-            <div className="absolute bottom-5 left-5 right-5 rounded-[26px] bg-white/92 p-5 shadow-soft backdrop-blur dark:bg-slate-950/88">
+            <div className="absolute bottom-5 left-5 right-5 rounded-[26px] bg-white/95 p-5 shadow-soft-lg backdrop-blur-md dark:bg-slate-950/90">
               <p className="text-sm font-black uppercase tracking-[0.22em] text-orange-500">Campus-ready</p>
-              <p className="mt-2 text-lg font-black">Engineering & Medical prep books from real student listings.</p>
+              <p className="mt-2 text-lg font-black text-ink leading-snug">
+                Engineering &amp; Medical prep books from real student listings.
+              </p>
             </div>
           </motion.div>
         </div>

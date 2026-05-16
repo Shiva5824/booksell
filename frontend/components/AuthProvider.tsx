@@ -1,77 +1,83 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { User as FirebaseUser, onAuthStateChanged, signOut } from "firebase/auth";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-
-type User = FirebaseUser;
+import { getCurrentUser } from "@/services/api";
 
 interface AuthContextType {
   user: User | null;
+  dbUser: any | null;
   loading: boolean;
   logout: () => Promise<void>;
-  setUser: (user: User | ((prev: User | null) => User | null)) => void;
+  refreshUser: () => Promise<void>;
+  updateProfile: (data: { name?: string; avatar?: string; phone?: string; college?: string }) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  dbUser: null,
+  loading: true,
+  logout: async () => {},
+  refreshUser: async () => {},
+  updateProfile: async () => {},
+});
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUserState] = useState<User | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [dbUser, setDbUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const fetchDbUser = async () => {
+    try {
+      const profile = await getCurrentUser();
+      setDbUser(profile);
+    } catch (err) {
+      console.error("Failed to fetch user profile", err);
+      setDbUser(null);
+    }
+  };
+
+  const updateProfile = async (data: any) => {
+    try {
+      const { updateUserProfile } = await import("@/services/api");
+      const updated = await updateUserProfile(data);
+      setDbUser(updated);
+    } catch (err) {
+      console.error("Failed to update profile", err);
+      throw err;
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          // Get token and store it
-          const token = await firebaseUser.getIdToken();
-          localStorage.setItem("token", token);
-          
-          setUserState(firebaseUser as User);
-        } else {
-          setUserState(null);
-          localStorage.removeItem("token");
-        }
-      } catch (error) {
-        console.error("Error setting up auth:", error);
-        setUserState(null);
-      } finally {
-        setLoading(false);
+      setLoading(true);
+      if (firebaseUser) {
+        const token = await firebaseUser.getIdToken();
+        localStorage.setItem("token", token);
+        setUser(firebaseUser);
+        await fetchDbUser();
+      } else {
+        localStorage.removeItem("token");
+        setUser(null);
+        setDbUser(null);
       }
+      setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-      localStorage.removeItem("token");
-      setUserState(null);
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
-
-  const setUser = (updater: User | ((prev: User | null) => User | null)) => {
-    if (typeof updater === "function") {
-      setUserState((prev) => updater(prev));
-    } else {
-      setUserState(updater);
-    }
+    await signOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, setUser }}>
+    <AuthContext.Provider value={{ user, dbUser, loading, logout, refreshUser: fetchDbUser, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  return useContext(AuthContext);
 }
