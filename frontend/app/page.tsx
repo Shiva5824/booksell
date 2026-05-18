@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, BookOpen, Cpu, FlaskConical,
   MapPin, PackageOpen, Plus, Search, 
-  Stethoscope, TrendingUp, UsersRound, Mail, MessageCircle, X,
+  Stethoscope, TrendingUp, UsersRound, Mail, MessageCircle, X, CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
@@ -66,6 +66,7 @@ export default function HomePage() {
   const [showContact, setShowContact] = useState(false);
   const [contactDetails, setContactDetails] = useState({ supportEmail: "", whatsappNumber: "" });
   const [loadingContact, setLoadingContact] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   const faqs = [
     {
@@ -422,7 +423,11 @@ export default function HomePage() {
           <div>
             <h4 className="mb-2 font-black text-[10px] sm:text-base">Links</h4>
             <ul className="space-y-1 text-[10px] sm:text-sm text-ink-secondary">
-              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">About</span></li>
+              <li>
+                <button onClick={() => setShowAbout(true)} className="hover:text-orange-500 transition-colors cursor-pointer text-left block">
+                  About
+                </button>
+              </li>
               <li>
                 <button 
                   onClick={() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" })}
@@ -501,6 +506,91 @@ export default function HomePage() {
                   )}
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAbout && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-0 overflow-y-auto">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowAbout(false)} />
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="relative z-10 w-full max-w-2xl rounded-t-3xl sm:rounded-2xl bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-lg max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg sm:text-2xl font-black">About SellChey</h2>
+                <button onClick={() => setShowAbout(false)} className="p-1 hover:bg-surface-tertiary rounded-lg transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4 sm:space-y-6">
+                <p className="text-sm sm:text-base font-semibold text-ink-secondary leading-relaxed">
+                  SellChey is India's first specialized student-to-student marketplace designed exclusively for buying and selling used college preparation books. We connect students across Engineering (IPE), Medical (NEET), and other competitive exams.
+                </p>
+
+                <div>
+                  <h3 className="font-black text-ink mb-2">Our Mission</h3>
+                  <p className="text-sm font-semibold text-ink-secondary leading-relaxed">
+                    We believe quality exam prep books shouldn't be expensive. SellChey makes it easy for students to extend the life of books, reduce costs, and support each other in their academic journey — all within a trusted, localized campus community.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-black text-ink mb-3">Our Values</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-orange-500/10 p-3">
+                      <p className="font-bold text-sm text-orange-600">Student-First</p>
+                      <p className="text-xs text-ink-secondary">Built by students, for students</p>
+                    </div>
+                    <div className="rounded-lg bg-blue-500/10 p-3">
+                      <p className="font-bold text-sm text-blue-600">Fast & Easy</p>
+                      <p className="text-xs text-ink-secondary">Post listings in a minute</p>
+                    </div>
+                    <div className="rounded-lg bg-emerald-500/10 p-3">
+                      <p className="font-bold text-sm text-emerald-600">Safe & Trusted</p>
+                      <p className="text-xs text-ink-secondary">Secure peer-to-peer</p>
+                    </div>
+                    <div className="rounded-lg bg-purple-500/10 p-3">
+                      <p className="font-bold text-sm text-purple-600">Focused</p>
+                      <p className="text-xs text-ink-secondary">Specialized for exam prep</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-black text-ink mb-3">Why Choose SellChey?</h3>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <span className="font-semibold text-ink-secondary">100% Free — No hidden charges</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <span className="font-semibold text-ink-secondary">Campus-Safe meetups</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <span className="font-semibold text-ink-secondary">Direct WhatsApp chat with sellers</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
+                      <span className="font-semibold text-ink-secondary">IPE, EAPCET, JEE, NEET focused</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <button
+                  onClick={() => setShowAbout(false)}
+                  className="w-full rounded-lg bg-primary text-white py-3 font-bold hover:bg-primary/90 transition-colors mt-4"
+                >
+                  Close
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
