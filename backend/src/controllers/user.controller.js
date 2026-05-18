@@ -45,6 +45,14 @@ export async function getUser(req, res) {
 export async function updateUserProfile(req, res) {
   try {
     const { name, avatar, phone, college } = req.body;
+    
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "User session not found in database. Please log out and sign in again to sync your profile.",
+      });
+    }
+
     const userId = req.user._id;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -134,6 +142,46 @@ export async function getUserProducts(req, res) {
     res.status(500).json({
       success: false,
       message: "Failed to get user products",
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * Check if a phone number already exists in the database
+ */
+export async function checkPhoneExists(req, res) {
+  try {
+    const { phone } = req.query;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number is required",
+      });
+    }
+
+    const cleanPhone = phone.trim();
+
+    // Query for any existing user with this phone number
+    const query = { phone: cleanPhone };
+    
+    // Exclude the current user if they already have a registered profile
+    if (req.user && req.user._id) {
+      query._id = { $ne: req.user._id };
+    }
+
+    const existingUser = await User.findOne(query);
+
+    res.json({
+      success: true,
+      exists: !!existingUser,
+    });
+  } catch (error) {
+    console.error("Error checking phone number:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to check phone number",
       error: error.message,
     });
   }

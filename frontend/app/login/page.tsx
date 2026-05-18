@@ -11,6 +11,7 @@ import {
   RecaptchaVerifier,
   ConfirmationResult,
   updateProfile,
+  sendEmailVerification,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { ShoppingBag, Mail, Lock, Phone, ArrowRight, Eye, EyeOff, User, ChevronLeft, Loader2 } from "lucide-react";
@@ -95,6 +96,11 @@ function LoginPageContent() {
       if (emailMode === "signup") {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         if (name) await updateProfile(cred.user, { displayName: name });
+        
+        // Send email verification link
+        await sendEmailVerification(cred.user);
+        alert("A verification link has been sent to your email inbox! Please verify your email.");
+
         const token = await cred.user.getIdToken();
         localStorage.setItem("token", token);
         const syncResult = await syncAuth({ name: name || cred.user.displayName || "", avatar: "" });
@@ -230,24 +236,15 @@ function LoginPageContent() {
                   <div className="relative flex justify-center text-xs text-ink-tertiary"><span className="bg-transparent px-3 font-semibold">or continue with</span></div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="mt-4">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => { setMode("email"); clearError(); }}
-                    className="flex items-center justify-center gap-2 rounded-2xl border border-border/10 bg-surface-bg hover:bg-surface-glass px-4 py-3.5 font-bold text-ink text-sm transition-all"
+                    className="w-full flex items-center justify-center gap-2.5 rounded-2xl border border-border/10 bg-surface-bg hover:bg-surface-glass px-5 py-4 font-bold text-ink transition-all"
                   >
-                    <Mail size={18} className="text-primary" />
-                    Email
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => { setMode("phone"); clearError(); }}
-                    className="flex items-center justify-center gap-2 rounded-2xl border border-border/10 bg-surface-bg hover:bg-surface-glass px-4 py-3.5 font-bold text-ink text-sm transition-all"
-                  >
-                    <Phone size={18} className="text-secondary" />
-                    Phone OTP
+                    <Mail size={18} className="text-primary animate-pulse" />
+                    Continue with Email
                   </motion.button>
                 </div>
 
@@ -370,98 +367,7 @@ function LoginPageContent() {
             </motion.div>
           )}
 
-          {/* ─── Phone OTP ─── */}
-          {mode === "phone" && (
-            <motion.div key="phone" variants={cardVariants} initial="hidden" animate="visible" exit="exit">
-              <div className="rounded-3xl border border-border/10 glass p-8 shadow-2xl backdrop-blur-xl">
-                <button onClick={() => { setMode("landing"); setOtpSent(false); setOtp(["", "", "", "", "", ""]); clearError(); }} className="flex items-center gap-1.5 text-sm text-ink-secondary hover:text-ink font-semibold mb-6 transition-colors">
-                  <ChevronLeft size={18} /> Back
-                </button>
 
-                <h2 className="text-xl font-black text-ink mb-1">{otpSent ? "Enter OTP" : "Phone Sign In"}</h2>
-                <p className="text-sm text-ink-secondary mb-6">
-                  {otpSent ? `A 6-digit OTP was sent to ${phone}` : "We'll send a one-time code to your phone"}
-                </p>
-
-                {/* invisible recaptcha anchor will go below */}
-
-                {!otpSent ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 rounded-2xl border border-border/10 bg-surface-bg px-4 py-3.5 focus-within:border-primary focus-within:bg-surface-glass transition-all">
-                      <Phone size={18} className="text-ink-tertiary shrink-0" />
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+91 98765 43210"
-                        className="w-full bg-transparent text-sm font-semibold text-ink placeholder:text-ink-tertiary outline-none"
-                      />
-                    </div>
-
-                    {error && (
-                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm font-semibold text-red-400">
-                        {error}
-                      </motion.p>
-                    )}
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleSendOtp}
-                      disabled={loading || phone.length < 8}
-                      className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-primary text-white font-bold py-4 shadow-glow-primary hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? <Loader2 size={20} className="animate-spin" /> : (<>Send OTP <ArrowRight size={18} /></>)}
-                    </motion.button>
-
-                    {/* structured recaptcha container */}
-                    <div className="flex justify-center mt-4">
-                      <div id="recaptcha-container" ref={recaptchaContainerRef} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* OTP boxes */}
-                    <div className="flex gap-2 justify-center">
-                      {otp.map((digit, i) => (
-                        <input
-                          key={i}
-                          ref={(el) => { otpRefs.current[i] = el; }}
-                          type="text"
-                          inputMode="numeric"
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(i, e.target.value)}
-                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                          className="w-12 h-14 rounded-2xl border border-border/10 bg-surface-bg text-center text-xl font-black text-ink focus:border-primary focus:bg-surface-glass outline-none transition-all"
-                        />
-                      ))}
-                    </div>
-
-                    {error && (
-                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm font-semibold text-red-400 text-center">
-                        {error}
-                      </motion.p>
-                    )}
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleVerifyOtp}
-                      disabled={loading || otp.join("").length < 6}
-                      className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-primary text-white font-bold py-4 shadow-glow-primary hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? <Loader2 size={20} className="animate-spin" /> : (<>Verify & Sign In <ArrowRight size={18} /></>)}
-                    </motion.button>
-
-                    <button onClick={() => { setOtpSent(false); setOtp(["", "", "", "", "", ""]); clearError(); }} className="w-full text-center text-sm text-ink-tertiary hover:text-ink font-semibold transition-colors">
-                      Resend OTP
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
 
         </AnimatePresence>
       </div>

@@ -106,7 +106,7 @@ export async function getUserProfile(userId: string) {
   }
 }
 
-export async function updateUserProfile(data: { name?: string; avatar?: string; phone?: string }) {
+export async function updateUserProfile(data: { name?: string; avatar?: string; phone?: string; college?: string }) {
   try {
     const response = await axios.put(`${API_BASE_URL}/users/profile`, data, {
       headers: getAuthHeader(),
@@ -115,6 +115,19 @@ export async function updateUserProfile(data: { name?: string; avatar?: string; 
   } catch (error) {
     console.error("Error updating profile:", error);
     throw error;
+  }
+}
+
+export async function checkPhoneExists(phone: string): Promise<boolean> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/users/check/phone`, {
+      params: { phone },
+      headers: getAuthHeader(),
+    });
+    return response.data.exists;
+  } catch (error) {
+    console.error("Error checking phone existence:", error);
+    return false;
   }
 }
 
@@ -242,6 +255,18 @@ export async function toggleUserRole(id: string) {
     return response.data.data;
   } catch (error) {
     console.error("Error toggling user role:", error);
+    throw error;
+  }
+}
+
+export async function deleteUserAccountAdmin(id: string) {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/admin/users/${id}`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting user account:", error);
     throw error;
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { getAdminUsers, toggleUserActive, toggleUserRole } from "@/services/api";
-import { Search, Shield, UserX, UserCheck, Mail, Calendar, MapPin, ShieldOff, ShieldAlert } from "lucide-react";
+import { getAdminUsers, toggleUserActive, toggleUserRole, deleteUserAccountAdmin } from "@/services/api";
+import { Search, Shield, UserX, UserCheck, Mail, Calendar, MapPin, ShieldOff, ShieldAlert, Trash2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -10,6 +10,8 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [notification, setNotification] = useState<{ msg: string; type: "error" | "success" } | null>(null);
+  const [userToDelete, setUserToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { dbUser: currentUser } = useAuth();
 
@@ -62,6 +64,21 @@ export default function UserManagement() {
       showNotification(`User role updated to ${updatedUser.role}.`);
     } catch (err) {
       showNotification("Failed to update user role", "error");
+    }
+  }
+
+  async function handleDeleteUser() {
+    if (!userToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteUserAccountAdmin(userToDelete._id);
+      setUsers(users.filter(u => u._id !== userToDelete._id));
+      showNotification(`Account for ${userToDelete.name} has been permanently deleted.`);
+      setUserToDelete(null);
+    } catch (err: any) {
+      showNotification(err.response?.data?.message || "Failed to delete user account.", "error");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -204,6 +221,15 @@ export default function UserManagement() {
                         >
                           {user.isActive ? <div className="flex items-center gap-1.5"><UserX size={14} /> Disable</div> : <div className="flex items-center gap-1.5"><UserCheck size={14} /> Enable</div>}
                         </button>
+
+                        {user.firebaseUid !== currentUser?.firebaseUid && (
+                          <button 
+                            onClick={() => setUserToDelete(user)}
+                            className="rounded-xl px-4 py-2 text-xs font-black uppercase bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white flex items-center gap-1.5 transition-all shadow-sm"
+                          >
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </motion.tr>
@@ -289,6 +315,15 @@ export default function UserManagement() {
                     >
                       {user.isActive ? "Disable" : "Enable"}
                     </button>
+
+                    {user.firebaseUid !== currentUser?.firebaseUid && (
+                      <button 
+                        onClick={() => setUserToDelete(user)}
+                        className="rounded-lg px-2.5 py-1.5 text-[10px] font-black uppercase bg-red-500/10 text-red-500 hover:bg-red-600 hover:text-white flex items-center gap-1 transition-all"
+                      >
+                        <Trash2 size={11} /> Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -306,6 +341,58 @@ export default function UserManagement() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {userToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setUserToDelete(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-border/10 bg-surface-bg p-8 shadow-2xl backdrop-blur-xl text-center space-y-6"
+            >
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+                <Trash2 size={28} />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-xl font-black text-ink">Delete User Account?</h2>
+                <p className="text-sm font-medium text-ink-secondary leading-relaxed">
+                  Are you sure you want to delete <span className="font-bold text-ink">{userToDelete.name}</span>? 
+                  This will permanently delete their account from Firebase, clean up their MongoDB document, and delete all of their listings. This action is irreversible.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setUserToDelete(null)}
+                  disabled={isDeleting}
+                  className="flex-1 btn-secondary py-3.5 font-bold rounded-2xl border border-border/10 hover:bg-surface-glass disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteUser}
+                  disabled={isDeleting}
+                  className="flex-1 btn-primary bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-2xl shadow-glow-error disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {isDeleting ? <Loader2 size={16} className="animate-spin" /> : null}
+                  Delete Account
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

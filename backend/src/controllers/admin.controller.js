@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Product from "../models/Product.js";
+import { firebaseAuth } from "../config/firebase.js";
 
 export async function getStats(req, res, next) {
   try {
@@ -94,6 +95,50 @@ export async function toggleProductStatus(req, res, next) {
     await product.save();
 
     res.json({ data: product });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteUserAccount(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    // Find the user first to get their Firebase UID
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent self-deletion
+    if (user.firebaseUid === req.firebaseUser.uid) {
+      return res.status(400).json({ message: "You cannot delete your own admin account." });
+    }
+
+    // 1. Delete user from Firebase Auth
+    try {
+      if (firebaseAuth) {
+        await firebaseAuth.deleteUser(user.firebaseUid);
+        console.log(`Successfully deleted user ${user.email} from Firebase Auth.`);
+      } else {
+        console.warn("Firebase Auth Admin SDK is not initialized; skipping Firebase deletion.");
+      }
+    } catch (firebaseError) {
+      // If the user is already gone from Firebase, log and still clean up MongoDB
+      console.error(`Firebase Auth deletion failed for UID ${user.firebaseUid}:`, firebaseError.message);
+    }
+
+    // 2. Delete the user's products/listings
+    const deletedProductsResult = await Product.deleteMany({ sellerId: id });
+    console.log(`Deleted ${deletedProductsResult.deletedCount} products associated with user ${id}.`);
+
+    // 3. Delete the user document from MongoDB
+    await User.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: "User account, associated listings, and auth credentials deleted successfully."
+    });
   } catch (error) {
     next(error);
   }

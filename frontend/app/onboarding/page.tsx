@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { uploadImages } from "@/services/api";
+import { uploadImages, checkPhoneExists } from "@/services/api";
 import { INDIAN_COLLEGES } from "@/lib/colleges";
 import { motion, AnimatePresence } from "framer-motion";
 import { GraduationCap, User, Phone, CheckCircle2, ChevronRight, Search, Camera, Loader2 } from "lucide-react";
@@ -16,6 +16,8 @@ export default function Onboarding() {
   const [name, setName] = useState("");
   const [avatar, setAvatar] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [checkingPhone, setCheckingPhone] = useState(false);
   const [college, setCollege] = useState("");
   const [collegeSearch, setCollegeSearch] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +38,63 @@ export default function Onboarding() {
       }
     }
   }, [user, dbUser, loading, router]);
+
+  useEffect(() => {
+    const cleanPhone = phone.trim();
+    if (!cleanPhone) {
+      setPhoneError("");
+      return;
+    }
+
+    const digitsOnly = cleanPhone.replace(/\D/g, "");
+    
+    // 1. Basic length check
+    if (digitsOnly.length < 10) {
+      setPhoneError("Phone number must be at least 10 digits.");
+      return;
+    }
+
+    // 2. Indian carrier prefix validation (must start with 6, 7, 8, or 9)
+    if (digitsOnly.length === 10) {
+      const firstDigit = digitsOnly[0];
+      if (!["6", "7", "8", "9"].includes(firstDigit)) {
+        setPhoneError("Indian mobile numbers must start with 6, 7, 8, or 9.");
+        return;
+      }
+    }
+
+    // 3. Repeated digits pattern check (e.g. 0000000000, 9999999999)
+    const isAllSame = /^(\d)\1+$/.test(digitsOnly);
+    if (isAllSame) {
+      setPhoneError("Invalid phone number: identical digits are not allowed.");
+      return;
+    }
+
+    // 4. Sequential digits check (e.g. 1234567890)
+    const sequentialPattern = "01234567890123456789";
+    if (sequentialPattern.includes(digitsOnly) && digitsOnly.length >= 8) {
+      setPhoneError("Invalid phone number: sequential digits are not allowed.");
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setCheckingPhone(true);
+      try {
+        const exists = await checkPhoneExists(cleanPhone);
+        if (exists) {
+          setPhoneError("User with that number already exists.");
+        } else {
+          setPhoneError("");
+        }
+      } catch (err) {
+        console.error("Error checking phone:", err);
+      } finally {
+        setCheckingPhone(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [phone]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -246,17 +305,29 @@ export default function Onboarding() {
                     <Phone size={32} />
                   </div>
                   <h1 className="text-2xl font-black text-ink">Contact Details</h1>
-                  <p className="mt-2 text-sm font-medium text-ink-secondary">Buyers will use this to reach out (Optional).</p>
+                  <p className="mt-2 text-sm font-medium text-ink-secondary">Buyers will use this to reach out (Mandatory).</p>
                 </div>
 
                 <div className="space-y-6">
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91 00000 00000"
-                    className="w-full rounded-2xl border border-border/10 bg-surface-tertiary px-6 py-4 text-center text-lg font-black text-ink outline-none focus:border-primary/50 transition-all"
-                  />
+                  <div>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+91 00000 00000"
+                      className="w-full rounded-2xl border border-border/10 bg-surface-tertiary px-6 py-4 text-center text-lg font-black text-ink outline-none focus:border-primary/50 transition-all font-mono"
+                    />
+                    {phoneError && (
+                      <p className="text-xs font-semibold text-red-500 mt-2 text-center">
+                        ⚠️ {phoneError}
+                      </p>
+                    )}
+                    {checkingPhone && (
+                      <p className="text-xs font-semibold text-primary mt-2 text-center">
+                        Checking phone number status...
+                      </p>
+                    )}
+                  </div>
                   
                   <div className="rounded-2xl bg-surface-tertiary p-4 flex gap-4">
                     <div className="flex-1">
@@ -276,8 +347,8 @@ export default function Onboarding() {
                   <button onClick={() => setStep(2)} className="btn-secondary flex-1 py-4">Back</button>
                   <button
                     onClick={handleFinish}
-                    disabled={isSubmitting}
-                    className="btn-primary flex-[2] py-4 shadow-glow-primary"
+                    disabled={isSubmitting || !!phoneError || !phone.trim() || checkingPhone}
+                    className="btn-primary flex-[2] py-4 shadow-glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? "Saving..." : "Start Exploring"}
                   </button>
