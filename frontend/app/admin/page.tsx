@@ -1,18 +1,32 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { getAdminStats } from "@/services/api";
-import { Users, ShoppingBag, CheckCircle2, TrendingUp, Calendar, ArrowUpRight } from "lucide-react";
+import { getSiteContact, updateSiteContact } from "@/services/site";
+import { Users, ShoppingBag, CheckCircle2, TrendingUp, Calendar, ArrowUpRight, Edit2, Trash2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [contactForm, setContactForm] = useState({ supportEmail: "", whatsappNumber: "" });
+  const [savingContact, setSavingContact] = useState(false);
+  const [contactMsg, setContactMsg] = useState("");
+  const [isEditingContact, setIsEditingContact] = useState(false);
+  const [hasContact, setHasContact] = useState(false);
 
   useEffect(() => {
     async function loadStats() {
       try {
         const data = await getAdminStats();
         setStats(data);
+        try {
+          const site = await getSiteContact();
+          setContactForm({ supportEmail: site.supportEmail || "", whatsappNumber: site.whatsappNumber || "" });
+          setHasContact(!!(site.supportEmail || site.whatsappNumber));
+          setIsEditingContact(false);
+        } catch (e) {
+          console.error("Failed loading site contact", e);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -21,6 +35,42 @@ export default function AdminDashboard() {
     }
     loadStats();
   }, []);
+
+  async function handleContactSave(e: any) {
+    e.preventDefault();
+    setSavingContact(true);
+    setContactMsg("");
+    try {
+      const payload = { supportEmail: contactForm.supportEmail.trim(), whatsappNumber: (contactForm.whatsappNumber || "").replace(/\D/g, "") };
+      await updateSiteContact(payload);
+      setContactMsg("Saved successfully");
+      setHasContact(!!(payload.supportEmail || payload.whatsappNumber));
+      setIsEditingContact(false);
+      setTimeout(() => setContactMsg(""), 2000);
+    } catch (err) {
+      console.error(err);
+      setContactMsg("Save failed");
+    } finally {
+      setSavingContact(false);
+    }
+  }
+
+  async function handleDeleteContact() {
+    setSavingContact(true);
+    try {
+      await updateSiteContact({ supportEmail: "", whatsappNumber: "" });
+      setContactForm({ supportEmail: "", whatsappNumber: "" });
+      setHasContact(false);
+      setIsEditingContact(false);
+      setContactMsg("Deleted successfully");
+      setTimeout(() => setContactMsg(""), 2000);
+    } catch (err) {
+      console.error(err);
+      setContactMsg("Delete failed");
+    } finally {
+      setSavingContact(false);
+    }
+  }
 
   const cards = [
     { label: "Total Users", value: stats?.totalUsers || 0, icon: Users, color: "bg-blue-500", trend: "+12% this month" },
@@ -75,6 +125,102 @@ export default function AdminDashboard() {
             </div>
           </motion.div>
         ))}
+      </div>
+
+      <div className="mt-6 rounded-3xl border border-border/10 bg-surface-bg p-6 shadow-card">
+        <h3 className="text-lg font-black text-ink mb-4">Site Contact Settings</h3>
+        
+        {!hasContact && !isEditingContact ? (
+          <div className="text-center py-8">
+            <Plus size={48} className="mx-auto mb-4 text-ink-secondary opacity-50" />
+            <p className="text-sm text-ink-secondary mb-4">No contact details set yet.</p>
+            <button
+              onClick={() => setIsEditingContact(true)}
+              className="btn-primary px-4 py-2"
+            >
+              Add Contact Details
+            </button>
+          </div>
+        ) : hasContact && !isEditingContact ? (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-surface-secondary p-4">
+              <p className="text-xs font-bold text-ink-secondary mb-1">Support Email</p>
+              <p className="text-sm font-bold text-ink">{contactForm.supportEmail}</p>
+            </div>
+            <div className="rounded-lg bg-surface-secondary p-4">
+              <p className="text-xs font-bold text-ink-secondary mb-1">WhatsApp Number</p>
+              <p className="text-sm font-bold text-ink">+91 {contactForm.whatsappNumber}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsEditingContact(true)}
+                className="flex items-center gap-2 flex-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 px-4 py-2 rounded-lg font-bold transition-colors"
+              >
+                <Edit2 size={16} />
+                Edit
+              </button>
+              <button
+                onClick={handleDeleteContact}
+                disabled={savingContact}
+                className="flex items-center gap-2 flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-600 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={16} />
+                {savingContact ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+
+            {contactMsg && (
+              <div className={`text-sm p-2 rounded text-center ${contactMsg.includes("successfully") ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"}`}>
+                {contactMsg}
+              </div>
+            )}
+          </div>
+        ) : (
+          <form onSubmit={handleContactSave} className="space-y-3 max-w-md">
+            <div>
+              <label className="block text-sm font-bold mb-1">Support Email</label>
+              <input 
+                type="email" 
+                value={contactForm.supportEmail} 
+                onChange={(e) => setContactForm({ ...contactForm, supportEmail: e.target.value })} 
+                className="w-full rounded-lg border border-border/10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" 
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold mb-1">WhatsApp Number (without +91)</label>
+              <input 
+                type="text" 
+                value={contactForm.whatsappNumber} 
+                onChange={(e) => setContactForm({ ...contactForm, whatsappNumber: e.target.value.replace(/\D/g, "") })} 
+                className="w-full rounded-lg border border-border/10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary" 
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button type="submit" disabled={savingContact} className="btn-primary px-4 py-2">
+                {savingContact ? "Saving..." : "Save"}
+              </button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setIsEditingContact(false);
+                  setContactMsg("");
+                }} 
+                className="px-4 py-2 rounded-lg bg-surface-tertiary font-bold hover:bg-surface-glass transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {contactMsg && (
+              <div className={`text-sm p-2 rounded text-center ${contactMsg.includes("successfully") ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"}`}>
+                {contactMsg}
+              </div>
+            )}
+          </form>
+        )}
       </div>
 
       {/* Basic Traffic Chart Mockup */}

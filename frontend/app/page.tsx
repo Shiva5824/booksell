@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, BookOpen, Cpu, FlaskConical,
   MapPin, PackageOpen, Plus, Search, 
-  Stethoscope, TrendingUp, UsersRound,
+  Stethoscope, TrendingUp, UsersRound, Mail, MessageCircle, X,
 } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import SearchBar from "@/components/SearchBar";
 import { getProducts } from "@/services/api";
+import { getSiteContact } from "@/services/site";
 import type { Product, ProductFilters } from "@/lib/types";
 
 const staggerContainer: any = {
@@ -62,6 +63,9 @@ export default function HomePage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [visibleCount, setVisibleCount] = useState(6);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [showContact, setShowContact] = useState(false);
+  const [contactDetails, setContactDetails] = useState({ supportEmail: "", whatsappNumber: "" });
+  const [loadingContact, setLoadingContact] = useState(false);
 
   const faqs = [
     {
@@ -105,6 +109,19 @@ export default function HomePage() {
     setVisibleCount(6);
     setFilters({ ...filters, category, sort: filters.sort || "newest" });
     document.getElementById("listings")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function openContact() {
+    setShowContact(true);
+    setLoadingContact(true);
+    try {
+      const data = await getSiteContact();
+      setContactDetails(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingContact(false);
+    }
   }
 
   const stats = [
@@ -419,6 +436,11 @@ export default function HomePage() {
                   Privacy Policy
                 </Link>
               </li>
+              <li>
+                <button onClick={() => openContact()} className="hover:text-orange-500 transition-colors cursor-pointer text-left block">
+                  Contact
+                </button>
+              </li>
             </ul>
           </div>
           <div>
@@ -433,6 +455,52 @@ export default function HomePage() {
           © 2026 SellChey. All rights reserved.
         </div>
       </footer>
+
+      <AnimatePresence>
+        {showContact && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowContact(false)} />
+            <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-900">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-black">Get in Touch</h2>
+                <button onClick={() => setShowContact(false)} className="p-1 hover:bg-surface-tertiary rounded-lg transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-ink-secondary mb-6">Reach out to us via email or WhatsApp.</p>
+              
+              {loadingContact ? (
+                <div className="text-center py-8">Loading...</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {contactDetails.supportEmail && (
+                    <a 
+                      href={`mailto:${contactDetails.supportEmail}`}
+                      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border/10 bg-blue-500/10 p-6 hover:bg-blue-500/20 transition-colors"
+                    >
+                      <Mail size={32} className="text-blue-500" />
+                      <span className="text-xs font-bold text-ink text-center">Email</span>
+                    </a>
+                  )}
+
+                  {contactDetails.whatsappNumber && (
+                    <a 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      href={`https://wa.me/91${contactDetails.whatsappNumber}`}
+                      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border/10 bg-emerald-500/10 p-6 hover:bg-emerald-500/20 transition-colors"
+                    >
+                      <MessageCircle size={32} className="text-emerald-500" />
+                      <span className="text-xs font-bold text-ink text-center">WhatsApp</span>
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </main>
   );
 }

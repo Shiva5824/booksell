@@ -8,6 +8,7 @@ import {
   toggleProductStatus,
   deleteUserAccount
 } from "../controllers/admin.controller.js";
+import { updateSiteContact } from "../controllers/site.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { requireAdmin } from "../middleware/admin.middleware.js";
 
@@ -23,5 +24,6 @@ router.post("/users/:id/role", toggleAdminRole);
 router.delete("/users/:id", deleteUserAccount);
 router.get("/products", getAllProducts);
 router.post("/products/:id/toggle", toggleProductStatus);
+router.put("/site/contact", updateSiteContact);
 
 export default router;
