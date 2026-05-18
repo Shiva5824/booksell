@@ -37,32 +37,32 @@ export default function PrivacyPolicy() {
         <div className="absolute -bottom-1/4 -left-1/4 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[120px] dark:bg-primary/10" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:py-16 space-y-10">
+      <div className="relative z-10 mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:py-16 space-y-8 sm:space-y-10">
         
         {/* Back Link */}
         <Link 
           href="/" 
-          className="inline-flex items-center gap-2 text-sm font-black text-ink-secondary hover:text-orange-500 transition-colors group"
+          className="inline-flex items-center gap-2 text-sm font-bold sm:font-black text-ink-secondary hover:text-orange-500 transition-colors group"
         >
           <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
           Back to Marketplace
         </Link>
 
         {/* Header Block */}
-        <div className="space-y-4">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
-            <Shield size={28} />
+        <div className="space-y-3 sm:space-y-4">
+          <div className="inline-flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
+            <Shield size={24} className="sm:size-7" />
           </div>
-          <h1 className="text-4xl font-black tracking-tight sm:text-5xl animate-fade-in">Privacy Policy</h1>
-          <p className="text-sm font-bold text-ink-secondary">Last updated: May 18, 2026</p>
-          <p className="text-base font-semibold leading-relaxed text-ink-secondary">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight animate-fade-in">Privacy Policy</h1>
+          <p className="text-xs sm:text-sm font-bold text-ink-secondary">Last updated: May 18, 2026</p>
+          <p className="text-sm sm:text-base font-semibold leading-relaxed text-ink-secondary">
             At SellChey, we are committed to protecting your privacy and providing a safe, trusted campus marketplace. 
             This policy outlines how we handle your personal details.
           </p>
         </div>
 
         {/* Core Sections */}
-        <div className="space-y-6 pt-4">
+        <div className="space-y-4 sm:space-y-6 pt-4">
           {sections.map((section, idx) => (
             <motion.div 
               key={idx}
@@ -70,15 +70,15 @@ export default function PrivacyPolicy() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.05 }}
-              className="rounded-3xl border border-border/10 bg-white dark:bg-slate-900/60 p-6 sm:p-8 shadow-soft space-y-4"
+              className="rounded-2xl sm:rounded-3xl border border-border/10 bg-white dark:bg-slate-900/60 p-4 sm:p-6 lg:p-8 shadow-soft space-y-3 sm:space-y-4"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
-                  <section.icon size={20} />
+              <div className="flex items-start gap-3 sm:items-center">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-orange-500/10 text-orange-500">
+                  <section.icon size={18} className="sm:size-5" />
                 </div>
-                <h2 className="text-lg sm:text-xl font-black text-ink">{section.title}</h2>
+                <h2 className="text-base sm:text-lg lg:text-xl font-black text-ink">{section.title}</h2>
               </div>
-              <p className="text-sm sm:text-base font-semibold leading-relaxed text-ink-secondary">
+              <p className="text-xs sm:text-sm lg:text-base font-semibold leading-relaxed text-ink-secondary">
                 {section.content}
               </p>
             </motion.div>
@@ -86,10 +86,10 @@ export default function PrivacyPolicy() {
         </div>
 
         {/* Extra disclaimer */}
-        <div className="rounded-3xl border border-dashed border-border/20 bg-white/40 dark:bg-slate-900/20 p-6 text-center space-y-3">
-          <CheckCircle2 className="mx-auto text-emerald-500" size={32} />
-          <h3 className="text-lg font-black">Trusted Peer-to-Peer Safety</h3>
-          <p className="max-w-md mx-auto text-xs font-semibold leading-relaxed text-ink-secondary sm:text-sm">
+        <div className="rounded-2xl sm:rounded-3xl border border-dashed border-border/20 bg-white/40 dark:bg-slate-900/20 p-4 sm:p-6 text-center space-y-3 sm:space-y-4">
+          <CheckCircle2 className="mx-auto text-emerald-500" size={28} />
+          <h3 className="text-base sm:text-lg font-black">Trusted Peer-to-Peer Safety</h3>
+          <p className="max-w-md mx-auto text-xs sm:text-sm font-semibold leading-relaxed text-ink-secondary">
             SellChey is built by students, for students. We secure your credentials via Firebase Auth and never engage in automated third-party data tracking.
           </p>
         </div>

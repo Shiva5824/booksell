@@ -458,11 +458,16 @@ export default function HomePage() {
 
       <AnimatePresence>
         {showContact && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-0">
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowContact(false)} />
-            <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-lg dark:bg-slate-900">
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="relative z-10 w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-lg"
+            >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-black">Get in Touch</h2>
+                <h2 className="text-lg sm:text-xl font-black">Get in Touch</h2>
                 <button onClick={() => setShowContact(false)} className="p-1 hover:bg-surface-tertiary rounded-lg transition-colors">
                   <X size={20} />
                 </button>
@@ -472,14 +477,14 @@ export default function HomePage() {
               {loadingContact ? (
                 <div className="text-center py-8">Loading...</div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 sm:gap-6">
                   {contactDetails.supportEmail && (
                     <a 
                       href={`mailto:${contactDetails.supportEmail}`}
-                      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border/10 bg-blue-500/10 p-6 hover:bg-blue-500/20 transition-colors"
+                      className="flex flex-col items-center justify-center gap-2 sm:gap-3 rounded-2xl border border-border/10 bg-blue-500/10 p-4 sm:p-6 hover:bg-blue-500/20 transition-colors active:scale-95"
                     >
-                      <Mail size={32} className="text-blue-500" />
-                      <span className="text-xs font-bold text-ink text-center">Email</span>
+                      <Mail size={28} className="sm:size-8 text-blue-500" />
+                      <span className="text-xs sm:text-sm font-bold text-ink text-center">Email</span>
                     </a>
                   )}
 
@@ -488,15 +493,15 @@ export default function HomePage() {
                       target="_blank" 
                       rel="noreferrer" 
                       href={`https://wa.me/91${contactDetails.whatsappNumber}`}
-                      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border/10 bg-emerald-500/10 p-6 hover:bg-emerald-500/20 transition-colors"
+                      className="flex flex-col items-center justify-center gap-2 sm:gap-3 rounded-2xl border border-border/10 bg-emerald-500/10 p-4 sm:p-6 hover:bg-emerald-500/20 transition-colors active:scale-95"
                     >
-                      <MessageCircle size={32} className="text-emerald-500" />
-                      <span className="text-xs font-bold text-ink text-center">WhatsApp</span>
+                      <MessageCircle size={28} className="sm:size-8 text-emerald-500" />
+                      <span className="text-xs sm:text-sm font-bold text-ink text-center">WhatsApp</span>
                     </a>
                   )}
                 </div>
               )}
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
