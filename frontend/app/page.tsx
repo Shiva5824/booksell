@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight, BookOpen, Cpu, FlaskConical,
   MapPin, PackageOpen, Plus, Search, 
@@ -61,6 +61,30 @@ export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [visibleCount, setVisibleCount] = useState(6);
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      q: "What is SellChey?",
+      a: "SellChey is a fast, trusted, and localized student-to-student marketplace designed specifically for buying and selling used college preparation books (such as IPE, EAPCET, JEE, and NEET) and other campus essentials."
+    },
+    {
+      q: "How do I buy a book or listing?",
+      a: "Simply browse or search for the item you need, click on the listing, and use the direct WhatsApp link to chat with the seller. You can arrange a safe campus meetup to inspect the book and complete the purchase."
+    },
+    {
+      q: "How can I post a listing?",
+      a: "Click on 'Sell Your Item' or the 'Post' button, log in securely with your account, fill in your book's details (such as price, condition, category, and college), upload a photo, and publish! It takes less than a minute."
+    },
+    {
+      q: "Is SellChey free to use?",
+      a: "Yes! SellChey is 100% free for all campus students. We do not charge listing fees, transaction costs, or commissions. Every transaction happens directly between the buyer and the seller."
+    },
+    {
+      q: "How do I ensure safety during meetups?",
+      a: "Always arrange to meet sellers in public, well-lit campus spaces (like libraries, main gates, or student lounges) during daylight hours, and fully inspect the books before making any payments."
+    }
+  ];
 
   useEffect(() => {
     setLoadingProducts(true);
@@ -271,31 +295,55 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ── Active Campuses ── */}
-      {colleges.length > 0 && (
-        <section className="border-y border-border/10 bg-white/55 py-10 dark:bg-white/5">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 sm:px-6 md:flex-row">
-            <div className="text-center md:text-left">
-              <h2 className="flex items-center justify-center gap-2 text-xl font-black md:justify-start sm:text-2xl">
-                <UsersRound className="text-orange-500" /> Active Campuses
-              </h2>
-              <p className="mt-2 text-sm text-ink-secondary sm:text-base">Filter listings from colleges already active on SellChey.</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
-              {colleges.map((college) => (
-                <button
-                  key={college}
-                  onClick={() => { setVisibleCount(6); setFilters({ college, sort: "newest" }); }}
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black shadow-soft transition-colors hover:bg-orange-50 dark:bg-white/10"
-                >
-                  <MapPin size={14} className="text-orange-500" />
-                  {college}
-                </button>
-              ))}
-            </div>
+      {/* ── FAQ Section ── */}
+      <section id="faq" className="border-y border-border/10 bg-white/55 py-14 dark:bg-white/5">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+          <div className="text-center space-y-3 mb-10">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-orange-500 sm:text-sm">Got Questions?</p>
+            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Frequently Asked Questions</h2>
+            <p className="max-w-xl mx-auto text-sm font-medium text-ink-secondary leading-relaxed">
+              Everything you need to know about buying, selling, and staying safe on SellChey.
+            </p>
           </div>
-        </section>
-      )}
+
+          <div className="space-y-4">
+            {faqs.map((faq, index) => {
+              const isOpen = activeFaq === index;
+              return (
+                <div 
+                  key={index}
+                  className="rounded-3xl border border-border/10 bg-white dark:bg-slate-900/60 overflow-hidden shadow-soft transition-all duration-300 focus-within:border-orange-500/30"
+                >
+                  <button
+                    onClick={() => setActiveFaq(isOpen ? null : index)}
+                    className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left font-black text-ink hover:text-orange-500 transition-colors focus:outline-none"
+                  >
+                    <span className="text-base sm:text-lg">{faq.q}</span>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-500/10 text-orange-500 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}>
+                      ↓
+                    </span>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                      >
+                        <div className="px-6 pb-6 text-sm sm:text-base font-semibold leading-relaxed text-ink-secondary border-t border-border/5 pt-4">
+                          {faq.a}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* ── CTA Banner ── */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
@@ -358,8 +406,19 @@ export default function HomePage() {
             <h4 className="mb-2 font-black text-[10px] sm:text-base">Links</h4>
             <ul className="space-y-1 text-[10px] sm:text-sm text-ink-secondary">
               <li><span className="hover:text-orange-500 transition-colors cursor-pointer">About</span></li>
-              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Help</span></li>
-              <li><span className="hover:text-orange-500 transition-colors cursor-pointer">Contact</span></li>
+              <li>
+                <button 
+                  onClick={() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" })}
+                  className="hover:text-orange-500 transition-colors cursor-pointer text-left block"
+                >
+                  Help
+                </button>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-orange-500 transition-colors cursor-pointer text-left block">
+                  Privacy Policy
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
