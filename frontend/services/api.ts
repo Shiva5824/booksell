@@ -100,11 +100,15 @@ export async function getUserProfile(userId: string) {
   if (!userId || userId === "undefined" || userId === "null") {
     return null;
   }
+  console.log("[getUserProfile] Fetching profile for userId:", userId);
   try {
     const response = await axios.get(`${API_BASE_URL}/users/${userId}`);
     return response.data.data;
-  } catch (error) {
-    console.error("Error fetching user profile:", error);
+  } catch (error: any) {
+    console.error(
+      `[getUserProfile] Failed fetching profile for userId: ${userId}. Response:`,
+      error.response?.data || error.message
+    );
     return null;
   }
 }
