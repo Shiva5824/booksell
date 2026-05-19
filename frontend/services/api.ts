@@ -97,6 +97,9 @@ export async function markProductAsSold(id: string) {
 // ===== USER ENDPOINTS =====
 
 export async function getUserProfile(userId: string) {
+  if (!userId || userId === "undefined" || userId === "null") {
+    return null;
+  }
   try {
     const response = await axios.get(`${API_BASE_URL}/users/${userId}`);
     return response.data.data;

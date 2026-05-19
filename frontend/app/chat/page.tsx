@@ -97,7 +97,7 @@ function ChatPageContent() {
   // Fetch seller info when active thread or initiating product changes
   useEffect(() => {
     async function fetchSellerInfo() {
-      if (activeThread) {
+      if (activeThread && activeThread.otherUserId) {
         const profile = await getUserProfile(activeThread.otherUserId);
         if (profile) {
           setSellerInfo({ avatar: profile.avatar, phone: profile.phone });
