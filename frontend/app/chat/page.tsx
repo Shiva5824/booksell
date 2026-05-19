@@ -9,7 +9,7 @@ import {
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ref, push, onValue, set, off, serverTimestamp, query, orderByChild } from "firebase/database";
+import { ref, push, onValue, set, off, serverTimestamp, query, orderByChild, update, get } from "firebase/database";
 import { database } from "@/lib/firebase";
 import { getProductById, getUserProfile, uploadImages } from "@/services/api";
 import type { Product } from "@/lib/types";
@@ -20,6 +20,7 @@ interface Message {
   text: string;
   imageUrl?: string;
   timestamp: number;
+  status?: string;
 }
 
 interface Thread {
@@ -54,6 +55,8 @@ function ChatPageContent() {
   const [text, setText] = useState("");
   const [initiatingProduct, setInitiatingProduct] = useState<Product | null>(null);
   const [profiles, setProfiles] = useState<Record<string, {avatar?: string; phone?: string}>>({});
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -155,6 +158,50 @@ function ChatPageContent() {
     });
     return () => off(messagesRef, "value", unsubscribe);
   }, [activeThreadId]);
+ 
+  // Listen for typing indicator of the other user in real time
+  useEffect(() => {
+    if (!activeThreadId || !activeThread?.otherUserId) {
+      setIsOtherUserTyping(false);
+      return;
+    }
+    const otherUserId = activeThread.otherUserId;
+    const typingRef = ref(database, `typing/${activeThreadId}/${otherUserId}`);
+    const unsubscribe = onValue(typingRef, (snapshot) => {
+      setIsOtherUserTyping(!!snapshot.val());
+    });
+    return () => {
+      off(typingRef, "value", unsubscribe);
+      setIsOtherUserTyping(false);
+    };
+  }, [activeThreadId, activeThread]);
+
+  // Online presence tracking
+  useEffect(() => {
+    if (!user) return;
+    const statusRef = ref(database, `status/${user.uid}`);
+    set(statusRef, "online").catch(() => {});
+
+    // Set offline when component unmounts or user changes
+    return () => {
+      set(statusRef, "offline").catch(() => {});
+    };
+  }, [user]);
+
+  // Mark received messages as seen when actively viewing this thread
+  useEffect(() => {
+    if (!activeThreadId || !user || messages.length === 0) return;
+
+    messages.forEach((msg) => {
+      if (msg.senderId !== user.uid && msg.status !== "seen") {
+        try {
+          update(ref(database, `messages/${activeThreadId}/${msg.id}`), {
+            status: "seen"
+          });
+        } catch (err) {}
+      }
+    });
+  }, [messages, activeThreadId, user]);
 
   useEffect(() => {
     if (productId && user) {
@@ -192,11 +239,31 @@ function ChatPageContent() {
     const messageText = text.trim();
     setText("");
     const conversationId = activeThread.id;
+    
+    // Reset typing state immediately in database upon sending
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    try {
+      set(ref(database, `typing/${conversationId}/${user.uid}`), false);
+    } catch (err) {}
+
+    // Check if the other user is online to set initial status
+    let initialStatus = "sent";
+    try {
+      const statusSnapshot = await get(ref(database, `status/${activeThread.otherUserId}`));
+      if (statusSnapshot.val() === "online") {
+        initialStatus = "delivered";
+      }
+    } catch (err) {}
+
     try {
       await push(ref(database, `messages/${conversationId}`), {
         senderId: user.uid,
         text: messageText,
         timestamp: serverTimestamp(),
+        status: initialStatus,
       });
     } catch (dbErr) {
       console.error("Firebase write to messages failed:", dbErr);
@@ -230,12 +297,22 @@ function ChatPageContent() {
       const urls = await uploadImages(Array.from(files));
       if (urls.length > 0) {
         const conversationId = activeThread.id;
+        // Check if the other user is online to set initial status
+        let initialStatus = "sent";
+        try {
+          const statusSnapshot = await get(ref(database, `status/${activeThread.otherUserId}`));
+          if (statusSnapshot.val() === "online") {
+            initialStatus = "delivered";
+          }
+        } catch (err) {}
+
         try {
           await push(ref(database, `messages/${conversationId}`), {
             senderId: user.uid,
             text: "📷 Image",
             imageUrl: urls[0],
             timestamp: serverTimestamp(),
+            status: initialStatus,
           });
         } catch (dbErr) {
           console.error("Firebase write to messages failed:", dbErr);
@@ -267,6 +344,41 @@ function ChatPageContent() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
+
+  const handleTextInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setText(e.target.value);
+
+    if (!activeThreadId || !user) return;
+
+    // Set typing state to true in Firebase Realtime Database
+    try {
+      set(ref(database, `typing/${activeThreadId}/${user.uid}`), true);
+    } catch (err) {
+      console.warn("Could not set typing state:", err);
+    }
+
+    // Debounce resetting typing state to false after 2 seconds of no keypress
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(async () => {
+      try {
+        await set(ref(database, `typing/${activeThreadId}/${user.uid}`), false);
+      } catch (err) {
+        console.warn("Could not reset typing state:", err);
+      }
+    }, 2000);
+  };
+
+  // Cleanup typing state on active thread change or page unmount
+  useEffect(() => {
+    return () => {
+      if (activeThreadId && user) {
+        set(ref(database, `typing/${activeThreadId}/${user.uid}`), false).catch(() => {});
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [activeThreadId, user]);
 
   return (
     <main className="bg-surface-secondary pb-nav" style={{ height: "calc(100dvh - 60px)" }}>
@@ -426,14 +538,36 @@ function ChatPageContent() {
                         {msg.text && msg.text !== "📷 Image" && (
                           <p className="text-sm leading-relaxed">{msg.text}</p>
                         )}
-                        <span className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-white/70" : "text-ink-tertiary"}`}>
+                        <span className={`mt-1 flex items-center justify-end gap-1.5 text-[10px] ${mine ? "text-white/70" : "text-ink-tertiary"}`}>
                           {time}
-                          {mine && <CheckCheck size={12} className="shrink-0" />}
+                          {mine && (
+                            <span className="shrink-0 flex items-center">
+                              {msg.status === "seen" ? (
+                                <CheckCheck size={13} className="text-sky-200 fill-sky-200" />
+                              ) : msg.status === "delivered" ? (
+                                <CheckCheck size={13} className="text-white/60" />
+                              ) : (
+                                <span className="text-white/50 text-[10px] font-bold select-none leading-none mb-[1px]">✓</span>
+                              )}
+                            </span>
+                          )}
                         </span>
                       </div>
                     </div>
                   );
                 })}
+                {isOtherUserTyping && (
+                  <div className="flex justify-start items-center gap-2.5 px-4 py-2.5 bg-white border border-border/10 rounded-2xl max-w-[220px] shadow-soft dark:bg-white/10 self-start mt-1">
+                    <span className="text-xs font-bold text-ink-secondary">
+                      {activeThread.otherUserName} is typing
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Input */}
@@ -466,7 +600,7 @@ function ChatPageContent() {
                 </button>
                 <input
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={handleTextInputChange}
                   placeholder={isUploading ? "Uploading image..." : "Type your message..."}
                   disabled={isUploading}
                   className="input-base flex-1 py-2.5 text-sm"
