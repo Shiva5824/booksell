@@ -59,6 +59,7 @@ function ChatPageContent() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -202,6 +203,11 @@ function ChatPageContent() {
       }
     });
   }, [messages, activeThreadId, user]);
+
+  // Auto-scroll messages feed to bottom on new messages, typing, or thread change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isOtherUserTyping, activeThreadId]);
 
   useEffect(() => {
     if (productId && user) {
@@ -568,6 +574,7 @@ function ChatPageContent() {
                     </div>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Input */}
