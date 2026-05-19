@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, CheckCheck, Image as ImageIcon, MessageCircle,
@@ -11,13 +11,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ref, push, onValue, set, off, serverTimestamp, query, orderByChild } from "firebase/database";
 import { database } from "@/lib/firebase";
-import { getProductById } from "@/services/api";
+import { getProductById, getUserProfile, uploadImages } from "@/services/api";
 import type { Product } from "@/lib/types";
 
 interface Message {
   id: string;
   senderId: string;
   text: string;
+  imageUrl?: string;
   timestamp: number;
 }
 
@@ -52,6 +53,10 @@ function ChatPageContent() {
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
   const [text, setText] = useState("");
   const [initiatingProduct, setInitiatingProduct] = useState<Product | null>(null);
+  const [sellerInfo, setSellerInfo] = useState<{avatar?: string; phone?: string}>();
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login?redirect=/chat");
@@ -74,6 +79,39 @@ function ChatPageContent() {
     });
     return () => off(threadsRef, "value", unsubscribe);
   }, [user]);
+
+  const activeThread = useMemo(() => {
+    return threads.find((t) => t.id === activeThreadId) ||
+      (initiatingProduct && activeThreadId?.includes(initiatingProduct._id) ? {
+        id: activeThreadId!,
+        productId: initiatingProduct._id,
+        productTitle: initiatingProduct.title,
+        otherUserId: (initiatingProduct.sellerId as any).firebaseUid || (initiatingProduct.sellerId as any)._id,
+        otherUserName: (initiatingProduct.sellerId as any).name,
+        lastMessage: "",
+        timestamp: Date.now(),
+        unread: 0,
+      } : null);
+  }, [threads, activeThreadId, initiatingProduct]);
+
+  // Fetch seller info when active thread or initiating product changes
+  useEffect(() => {
+    async function fetchSellerInfo() {
+      if (activeThread) {
+        const profile = await getUserProfile(activeThread.otherUserId);
+        if (profile) {
+          setSellerInfo({ avatar: profile.avatar, phone: profile.phone });
+        }
+      } else if (initiatingProduct) {
+        const seller = initiatingProduct.sellerId as any;
+        setSellerInfo({
+          avatar: seller.avatar || undefined,
+          phone: seller.phone || undefined
+        });
+      }
+    }
+    fetchSellerInfo();
+  }, [activeThread, initiatingProduct]);
 
   useEffect(() => {
     if (!activeThreadId) { setMessages([]); return; }
@@ -119,17 +157,6 @@ function ChatPageContent() {
     );
   }
 
-  const activeThread = threads.find((t) => t.id === activeThreadId) ||
-    (initiatingProduct && activeThreadId?.includes(initiatingProduct._id) ? {
-      id: activeThreadId!,
-      productId: initiatingProduct._id,
-      productTitle: initiatingProduct.title,
-      otherUserId: (initiatingProduct.sellerId as any).firebaseUid || (initiatingProduct.sellerId as any)._id,
-      otherUserName: (initiatingProduct.sellerId as any).name,
-      lastMessage: "",
-      timestamp: Date.now(),
-      unread: 0,
-    } : null);
 
   async function sendMessage() {
     if (!text.trim() || !activeThread || !user) return;
@@ -154,6 +181,45 @@ function ChatPageContent() {
     };
     updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName);
     updateConv(activeThread.otherUserId, user.uid, user.displayName || "User");
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !activeThread || !user) return;
+
+    setIsUploading(true);
+    try {
+      const urls = await uploadImages(Array.from(files));
+      if (urls.length > 0) {
+        const conversationId = activeThread.id;
+        await push(ref(database, `messages/${conversationId}`), {
+          senderId: user.uid,
+          text: "📷 Image",
+          imageUrl: urls[0],
+          timestamp: serverTimestamp(),
+        });
+
+        const updateConv = (uid: string, otherUid: string, otherName: string) => {
+          set(ref(database, `users/${uid}/chats/${conversationId}`), {
+            productId: activeThread.productId,
+            productTitle: activeThread.productTitle,
+            otherUserId: otherUid,
+            otherUserName: otherName,
+            lastMessage: "📷 Image",
+            timestamp: serverTimestamp(),
+            unread: 0,
+          });
+        };
+        updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName);
+        updateConv(activeThread.otherUserId, user.uid, user.displayName || "User");
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   return (
@@ -231,8 +297,18 @@ function ChatPageContent() {
                   >
                     <ArrowLeft size={19} />
                   </button>
-                  <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black text-lg shrink-0">
-                    {activeThread.otherUserName[0]?.toUpperCase()}
+                  <div className="h-10 w-10 min-w-0">
+                    {sellerInfo?.avatar ? (
+                      <img
+                        src={sellerInfo.avatar}
+                        alt={`${activeThread?.otherUserName}'s avatar`}
+                        className="h-10 w-10 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black text-lg shrink-0">
+                        {activeThread.otherUserName[0]?.toUpperCase()}
+                      </div>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <h2 className="truncate font-bold text-ink">{activeThread.otherUserName}</h2>
@@ -242,7 +318,17 @@ function ChatPageContent() {
                   </div>
                 </div>
                 <div className="flex gap-1.5">
-                  <button className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-surface-secondary transition-smooth text-ink-secondary" aria-label="Call">
+                  <button
+                    onClick={() => {
+                      const phoneNumber = sellerInfo?.phone || (initiatingProduct?.sellerId as any)?.phone;
+                      if (phoneNumber) {
+                        window.open(`https://wa.me/91${phoneNumber.replace(/\s+/g, '')}`, '_blank');
+                      }
+                    }}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-surface-secondary transition-smooth text-ink-secondary"
+                    aria-label="Call"
+                    title="Call on WhatsApp"
+                  >
                     <Phone size={18} />
                   </button>
                   <button className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-surface-secondary transition-smooth text-ink-secondary" aria-label="More">
@@ -276,7 +362,16 @@ function ChatPageContent() {
                       <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-soft ${
                         mine ? "bg-gradient-primary text-white rounded-bl-lg" : "bg-white text-ink border border-border/10 rounded-br-lg dark:bg-white/10"
                       }`}>
-                        <p className="text-sm leading-relaxed">{msg.text}</p>
+                        {msg.imageUrl && (
+                          <img 
+                            src={msg.imageUrl} 
+                            alt="Chat attachment" 
+                            className="max-w-full rounded-xl mb-1 object-contain max-h-60" 
+                          />
+                        )}
+                        {msg.text && msg.text !== "📷 Image" && (
+                          <p className="text-sm leading-relaxed">{msg.text}</p>
+                        )}
                         <span className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${mine ? "text-white/70" : "text-ink-tertiary"}`}>
                           {time}
                           {mine && <CheckCheck size={12} className="shrink-0" />}
@@ -292,21 +387,39 @@ function ChatPageContent() {
                 className="flex items-center gap-2 border-t border-border/10 bg-white px-3 py-2.5 sm:px-4 sm:py-3 dark:bg-white/5"
                 onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
               >
-                <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-secondary text-ink-secondary hover:text-ink transition-smooth" aria-label="Attach">
+                <input 
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-secondary text-ink-secondary hover:text-ink transition-smooth disabled:opacity-50"
+                  aria-label="Attach"
+                >
                   <Paperclip size={18} />
                 </button>
-                <button type="button" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-secondary text-ink-secondary hover:text-ink transition-smooth" aria-label="Image">
+                <button type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-secondary text-ink-secondary hover:text-ink transition-smooth disabled:opacity-50"
+                  aria-label="Image"
+                >
                   <ImageIcon size={18} />
                 </button>
                 <input
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Type your message..."
+                  placeholder={isUploading ? "Uploading image..." : "Type your message..."}
+                  disabled={isUploading}
                   className="input-base flex-1 py-2.5 text-sm"
                 />
                 <button
                   type="submit"
-                  disabled={!text.trim()}
+                  disabled={!text.trim() || isUploading}
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-primary text-white transition-smooth hover:shadow-glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Send"
                 >

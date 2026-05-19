@@ -9,14 +9,13 @@ export async function getUser(req, res) {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid user ID",
-      });
+    let user;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      user = await User.findById(id).select("-firebaseUid");
+    } else {
+      // If not a valid ObjectId, try finding by firebaseUid
+      user = await User.findOne({ firebaseUid: id }).select("-firebaseUid");
     }
-
-    const user = await User.findById(id).select("-firebaseUid");
 
     if (!user) {
       return res.status(404).json({
