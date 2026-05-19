@@ -544,16 +544,25 @@ function ChatPageContent() {
                         {msg.text && msg.text !== "📷 Image" && (
                           <p className="text-sm leading-relaxed">{msg.text}</p>
                         )}
-                        <span className={`mt-1 flex items-center justify-end gap-1.5 text-[10px] ${mine ? "text-white/70" : "text-ink-tertiary"}`}>
+                        <span className={`mt-1 flex items-center justify-end gap-2 text-[10px] ${mine ? "text-white/70" : "text-ink-tertiary"}`}>
                           {time}
                           {mine && (
-                            <span className="shrink-0 flex items-center">
+                            <span className="shrink-0 flex items-center gap-1 select-none">
                               {msg.status === "seen" ? (
-                                <CheckCheck size={13} className="text-sky-200 fill-sky-200" />
+                                <>
+                                  <span className="text-sky-200/90 font-medium">Seen</span>
+                                  <CheckCheck size={12} className="text-sky-200 fill-sky-200" />
+                                </>
                               ) : msg.status === "delivered" ? (
-                                <CheckCheck size={13} className="text-white/60" />
+                                <>
+                                  <span className="text-white/60 font-medium">Delivered</span>
+                                  <CheckCheck size={12} className="text-white/60" />
+                                </>
                               ) : (
-                                <span className="text-white/50 text-[10px] font-bold select-none leading-none mb-[1px]">✓</span>
+                                <>
+                                  <span className="text-white/50 font-medium">Sent</span>
+                                  <span className="text-white/50 text-[10px] font-bold leading-none mb-[1px]">✓</span>
+                                </>
                               )}
                             </span>
                           )}
