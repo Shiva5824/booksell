@@ -192,24 +192,33 @@ function ChatPageContent() {
     const messageText = text.trim();
     setText("");
     const conversationId = activeThread.id;
-    await push(ref(database, `messages/${conversationId}`), {
-      senderId: user.uid,
-      text: messageText,
-      timestamp: serverTimestamp(),
-    });
-    const updateConv = (uid: string, otherUid: string, otherName: string) => {
-      set(ref(database, `users/${uid}/chats/${conversationId}`), {
-        productId: activeThread.productId,
-        productTitle: activeThread.productTitle,
-        otherUserId: otherUid,
-        otherUserName: otherName,
-        lastMessage: messageText,
+    try {
+      await push(ref(database, `messages/${conversationId}`), {
+        senderId: user.uid,
+        text: messageText,
         timestamp: serverTimestamp(),
-        unread: 0,
       });
+    } catch (dbErr) {
+      console.error("Firebase write to messages failed:", dbErr);
+    }
+
+    const updateConv = async (uid: string, otherUid: string, otherName: string) => {
+      try {
+        await set(ref(database, `users/${uid}/chats/${conversationId}`), {
+          productId: activeThread.productId,
+          productTitle: activeThread.productTitle,
+          otherUserId: otherUid,
+          otherUserName: otherName,
+          lastMessage: messageText,
+          timestamp: serverTimestamp(),
+          unread: 0,
+        });
+      } catch (dbErr) {
+        console.warn(`Could not update chats list for user: ${uid}. Verify Firebase Realtime Database Security Rules if PERMISSION_DENIED occurs. Error:`, dbErr);
+      }
     };
-    updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName);
-    updateConv(activeThread.otherUserId, user.uid, user.displayName || "User");
+    await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName);
+    await updateConv(activeThread.otherUserId, user.uid, user.displayName || "User");
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -221,26 +230,34 @@ function ChatPageContent() {
       const urls = await uploadImages(Array.from(files));
       if (urls.length > 0) {
         const conversationId = activeThread.id;
-        await push(ref(database, `messages/${conversationId}`), {
-          senderId: user.uid,
-          text: "📷 Image",
-          imageUrl: urls[0],
-          timestamp: serverTimestamp(),
-        });
-
-        const updateConv = (uid: string, otherUid: string, otherName: string) => {
-          set(ref(database, `users/${uid}/chats/${conversationId}`), {
-            productId: activeThread.productId,
-            productTitle: activeThread.productTitle,
-            otherUserId: otherUid,
-            otherUserName: otherName,
-            lastMessage: "📷 Image",
+        try {
+          await push(ref(database, `messages/${conversationId}`), {
+            senderId: user.uid,
+            text: "📷 Image",
+            imageUrl: urls[0],
             timestamp: serverTimestamp(),
-            unread: 0,
           });
+        } catch (dbErr) {
+          console.error("Firebase write to messages failed:", dbErr);
+        }
+
+        const updateConv = async (uid: string, otherUid: string, otherName: string) => {
+          try {
+            await set(ref(database, `users/${uid}/chats/${conversationId}`), {
+              productId: activeThread.productId,
+              productTitle: activeThread.productTitle,
+              otherUserId: otherUid,
+              otherUserName: otherName,
+              lastMessage: "📷 Image",
+              timestamp: serverTimestamp(),
+              unread: 0,
+            });
+          } catch (dbErr) {
+            console.warn(`Could not update chats list for user: ${uid}. Verify Firebase Realtime Database Security Rules if PERMISSION_DENIED occurs. Error:`, dbErr);
+          }
         };
-        updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName);
-        updateConv(activeThread.otherUserId, user.uid, user.displayName || "User");
+        await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName);
+        await updateConv(activeThread.otherUserId, user.uid, user.displayName || "User");
       }
     } catch (error) {
       console.error("Upload failed:", error);
