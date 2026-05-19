@@ -53,7 +53,7 @@ function ChatPageContent() {
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
   const [text, setText] = useState("");
   const [initiatingProduct, setInitiatingProduct] = useState<Product | null>(null);
-  const [sellerInfo, setSellerInfo] = useState<{avatar?: string; phone?: string}>();
+  const [profiles, setProfiles] = useState<Record<string, {avatar?: string; phone?: string}>>({});
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -94,24 +94,53 @@ function ChatPageContent() {
       } : null);
   }, [threads, activeThreadId, initiatingProduct]);
 
-  // Fetch seller info when active thread or initiating product changes
+  // Fetch profile details for all participants and cache them
   useEffect(() => {
-    async function fetchSellerInfo() {
+    async function fetchProfiles() {
+      // 1. Fetch active thread user profile
       if (activeThread && activeThread.otherUserId) {
-        const profile = await getUserProfile(activeThread.otherUserId);
-        if (profile) {
-          setSellerInfo({ avatar: profile.avatar, phone: profile.phone });
+        const uid = activeThread.otherUserId;
+        if (!profiles[uid]) {
+          const profile = await getUserProfile(uid);
+          if (profile) {
+            setProfiles((prev) => ({
+              ...prev,
+              [uid]: { avatar: profile.avatar || undefined, phone: profile.phone || undefined }
+            }));
+          }
         }
-      } else if (initiatingProduct) {
-        const seller = initiatingProduct.sellerId as any;
-        setSellerInfo({
-          avatar: seller.avatar || undefined,
-          phone: seller.phone || undefined
-        });
       }
+
+      // 2. Fetch sidebar thread profiles in the background
+      threads.forEach(async (thread) => {
+        if (thread.otherUserId && !profiles[thread.otherUserId]) {
+          const profile = await getUserProfile(thread.otherUserId);
+          if (profile) {
+            setProfiles((prev) => ({
+              ...prev,
+              [thread.otherUserId]: { avatar: profile.avatar || undefined, phone: profile.phone || undefined }
+            }));
+          }
+        }
+      });
     }
-    fetchSellerInfo();
-  }, [activeThread, initiatingProduct]);
+
+    fetchProfiles();
+  }, [activeThread, threads, profiles]);
+
+  const sellerInfo = useMemo(() => {
+    if (activeThread && profiles[activeThread.otherUserId]) {
+      return profiles[activeThread.otherUserId];
+    }
+    if (initiatingProduct) {
+      const seller = initiatingProduct.sellerId as any;
+      return {
+        avatar: seller.avatar || undefined,
+        phone: seller.phone || undefined
+      };
+    }
+    return undefined;
+  }, [activeThread, profiles, initiatingProduct]);
 
   useEffect(() => {
     if (!activeThreadId) { setMessages([]); return; }
@@ -265,8 +294,16 @@ function ChatPageContent() {
                     thread.id === activeThreadId ? "bg-orange-50 dark:bg-orange-500/10" : "hover:bg-surface-secondary"
                   }`}
                 >
-                  <div className="relative shrink-0 h-11 w-11 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black text-base">
-                    {thread.otherUserName[0]?.toUpperCase()}
+                  <div className="relative shrink-0 h-11 w-11 rounded-xl overflow-hidden bg-gradient-primary flex items-center justify-center text-white font-black text-base">
+                    {profiles[thread.otherUserId]?.avatar ? (
+                      <img
+                        src={profiles[thread.otherUserId].avatar}
+                        alt={`${thread.otherUserName}'s avatar`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      thread.otherUserName[0]?.toUpperCase()
+                    )}
                     <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-orange-500" />
                   </div>
                   <span className="min-w-0 flex-1">
