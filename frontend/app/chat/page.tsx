@@ -34,6 +34,19 @@ interface Thread {
   unread: number;
 }
 
+const WhatsAppSingleCheck = ({ className, size = 15 }: { className?: string; size?: number }) => (
+  <svg viewBox="0 0 16 15" width={size} height={size - 1} fill="none" className={`shrink-0 ${className}`}>
+    <path d="M1.5 7.5L5.5 11.5L10.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+);
+
+const WhatsAppDoubleCheck = ({ className, size = 16 }: { className?: string; size?: number }) => (
+  <svg viewBox="0 0 16 15" width={size} height={size - 1} fill="none" className={`shrink-0 ${className}`}>
+    <path d="M1.5 7.5L5.5 11.5L10.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M5.5 7.5L9.5 11.5L14.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+);
+
 export default function ChatPage() {
   return (
     <Suspense fallback={<main className="grid min-h-screen place-items-center bg-background text-ink">Loading messages...</main>}>
@@ -551,17 +564,17 @@ function ChatPageContent() {
                               {msg.status === "seen" ? (
                                 <>
                                   <span className="text-sky-200/90 font-medium">Seen</span>
-                                  <CheckCheck size={12} className="text-sky-200 fill-sky-200" />
+                                  <WhatsAppDoubleCheck size={15} className="text-sky-200" />
                                 </>
                               ) : msg.status === "delivered" ? (
                                 <>
                                   <span className="text-white/60 font-medium">Delivered</span>
-                                  <CheckCheck size={12} className="text-white/60" />
+                                  <WhatsAppDoubleCheck size={15} className="text-white/60" />
                                 </>
                               ) : (
                                 <>
                                   <span className="text-white/50 font-medium">Sent</span>
-                                  <span className="text-white/50 text-[10px] font-bold leading-none mb-[1px]">✓</span>
+                                  <WhatsAppSingleCheck size={14} className="text-white/50" />
                                 </>
                               )}
                             </span>
