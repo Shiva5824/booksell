@@ -9,7 +9,7 @@ import {
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ref, push, onValue, set, off, serverTimestamp, query, orderByChild, update, get } from "firebase/database";
+import { ref, push, onValue, set, off, serverTimestamp, query, orderByChild, update, get, onDisconnect } from "firebase/database";
 import { database } from "@/lib/firebase";
 import { getProductById, getUserProfile, uploadImages } from "@/services/api";
 import type { Product } from "@/lib/types";
@@ -47,6 +47,30 @@ const WhatsAppDoubleCheck = ({ className, size = 16 }: { className?: string; siz
   </svg>
 );
 
+const formatLastSeen = (timestamp?: number) => {
+  if (!timestamp) return "offline";
+  const date = new Date(timestamp);
+  const now = new Date();
+  
+  const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  
+  // Check if it was today
+  if (date.toDateString() === now.toDateString()) {
+    return `last seen today at ${timeStr}`;
+  }
+  
+  // Check if it was yesterday
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `last seen yesterday at ${timeStr}`;
+  }
+  
+  // Otherwise format with date
+  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
+  return `last seen on ${dateStr} at ${timeStr}`;
+};
+
 export default function ChatPage() {
   return (
     <Suspense fallback={<main className="grid min-h-screen place-items-center bg-background text-ink">Loading messages...</main>}>
@@ -74,6 +98,7 @@ function ChatPageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [otherUserStatus, setOtherUserStatus] = useState<{ state: string; lastChanged?: number } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login?redirect=/chat");
@@ -190,17 +215,56 @@ function ChatPageContent() {
     };
   }, [activeThreadId, activeThread]);
 
-  // Online presence tracking
+  // Online presence tracking with disconnect hooks
   useEffect(() => {
     if (!user) return;
     const statusRef = ref(database, `status/${user.uid}`);
-    set(statusRef, "online").catch(() => {});
+    
+    // Set status to online
+    set(statusRef, {
+      state: "online",
+      lastChanged: serverTimestamp(),
+    }).catch(() => {});
 
-    // Set offline when component unmounts or user changes
+    // Queue offline updates on disconnect
+    onDisconnect(statusRef).set({
+      state: "offline",
+      lastChanged: serverTimestamp(),
+    }).catch(() => {});
+
+    // Set offline when unmounting or changing user
     return () => {
-      set(statusRef, "offline").catch(() => {});
+      set(statusRef, {
+        state: "offline",
+        lastChanged: serverTimestamp(),
+      }).catch(() => {});
     };
   }, [user]);
+
+  // Real-time status listener for the other user in active chat thread
+  useEffect(() => {
+    if (!activeThreadId || !activeThread?.otherUserId) {
+      setOtherUserStatus(null);
+      return;
+    }
+    const otherUserId = activeThread.otherUserId;
+    const otherUserStatusRef = ref(database, `status/${otherUserId}`);
+    const unsubscribe = onValue(otherUserStatusRef, (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        setOtherUserStatus({
+          state: val.state || "offline",
+          lastChanged: val.lastChanged,
+        });
+      } else {
+        setOtherUserStatus({ state: "offline" });
+      }
+    });
+    return () => {
+      off(otherUserStatusRef, "value", unsubscribe);
+      setOtherUserStatus(null);
+    };
+  }, [activeThreadId, activeThread]);
 
   // Mark received messages as seen when actively viewing this thread
   useEffect(() => {
@@ -272,7 +336,8 @@ function ChatPageContent() {
     let initialStatus = "sent";
     try {
       const statusSnapshot = await get(ref(database, `status/${activeThread.otherUserId}`));
-      if (statusSnapshot.val() === "online") {
+      const val = statusSnapshot.val();
+      if (val && val.state === "online") {
         initialStatus = "delivered";
       }
     } catch (err) {}
@@ -320,7 +385,8 @@ function ChatPageContent() {
         let initialStatus = "sent";
         try {
           const statusSnapshot = await get(ref(database, `status/${activeThread.otherUserId}`));
-          if (statusSnapshot.val() === "online") {
+          const val = statusSnapshot.val();
+          if (val && val.state === "online") {
             initialStatus = "delivered";
           }
         } catch (err) {}
@@ -496,10 +562,22 @@ function ChatPageContent() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h2 className="truncate font-bold text-ink">{activeThread.otherUserName}</h2>
-                    <p className="flex items-center gap-1.5 text-xs font-semibold text-orange-500">
-                      <ShieldCheck size={14} className="shrink-0" /> Verified Seller
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <h2 className="truncate font-bold text-ink text-sm sm:text-base leading-snug">{activeThread.otherUserName}</h2>
+                      <span className="flex items-center gap-0.5 rounded bg-orange-50 px-1 py-0.5 text-[10px] font-bold text-orange-500 dark:bg-orange-500/10">
+                        <ShieldCheck size={10} className="shrink-0" /> Verified
+                      </span>
+                    </div>
+                    {otherUserStatus?.state === "online" ? (
+                      <div className="flex items-center gap-1.5 text-[11px] text-emerald-500 font-bold leading-none mt-0.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        online
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-ink-tertiary font-medium leading-none mt-0.5 select-none">
+                        {formatLastSeen(otherUserStatus?.lastChanged)}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-1.5">
