@@ -36,14 +36,14 @@ interface Thread {
 
 const WhatsAppSingleCheck = ({ className, size = 15 }: { className?: string; size?: number }) => (
   <svg viewBox="0 0 16 15" width={size} height={size - 1} fill="none" className={`shrink-0 ${className}`}>
-    <path d="M1.5 7.5L5.5 11.5L10.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1.5 7.5L5.5 11.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
 const WhatsAppDoubleCheck = ({ className, size = 16 }: { className?: string; size?: number }) => (
   <svg viewBox="0 0 16 15" width={size} height={size - 1} fill="none" className={`shrink-0 ${className}`}>
-    <path d="M1.5 7.5L5.5 11.5L10.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M5.5 7.5L9.5 11.5L14.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1.5 7.5L5.5 11.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5.5 7.5L9.5 11.5L14.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 
