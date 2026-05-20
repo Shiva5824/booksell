@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, X } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, usePathname } from "next/navigation";
 import { ref, onValue, off } from "firebase/database";
@@ -21,42 +21,43 @@ export default function ChatNotificationToast() {
   const router = useRouter();
   const pathname = usePathname();
   const [toast, setToast] = useState<ToastData | null>(null);
+  const [totalUnread, setTotalUnread] = useState(0);
   const previousChatsRef = useRef<Record<string, any>>({});
   const initialLoadCompleted = useRef(false);
 
+  // Sync total unread count from Firebase Realtime Database
   useEffect(() => {
     if (!user) {
-      setToast(null);
+      setTotalUnread(0);
       return;
     }
 
     const chatsRef = ref(database, `users/${user.uid}/chats`);
-    
     const unsubscribe = onValue(chatsRef, (snapshot) => {
       const chats = snapshot.val() || {};
-      
-      // If this is the initial load, just populate the previous chats ref and skip showing toasts
+      let sum = 0;
+      Object.keys(chats).forEach((id) => {
+        sum += chats[id].unread || 0;
+      });
+      setTotalUnread(sum);
+
+      // Setup initial chats for first load comparison
       if (!initialLoadCompleted.current) {
         previousChatsRef.current = chats;
         initialLoadCompleted.current = true;
         return;
       }
 
-      // Look for updates/new messages
+      // Check for incoming unread messages to trigger popup
       Object.keys(chats).forEach((threadId) => {
         const prevChat = previousChatsRef.current[threadId];
         const currentChat = chats[threadId];
 
-        // If the chat timestamp changed (meaning a new message was received)
         if (currentChat && (!prevChat || currentChat.timestamp > prevChat.timestamp)) {
-          // If the unread count increased, it is an incoming unread message
           if (currentChat.unread > (prevChat?.unread || 0)) {
-            // Pointless to show notification inside the messages section!
-            if (pathname === "/chat") {
-              return;
-            }
+            // Silenced on the messages page
+            if (pathname === "/chat") return;
 
-            // Trigger the notification popup!
             setToast({
               id: threadId,
               senderName: currentChat.otherUserName,
@@ -65,17 +66,17 @@ export default function ChatNotificationToast() {
               productId: currentChat.productId,
             });
 
-            // Play high-quality crisp instant bell chime sound
+            // Premium crisp instant notification chime sound
             try {
               const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav");
               audio.volume = 0.45;
               audio.play().catch(() => {});
             } catch (err) {}
 
-            // Auto-dismiss after 5 seconds
+            // Auto-dismiss after 6 seconds
             const timer = setTimeout(() => {
               setToast(null);
-            }, 5000);
+            }, 6000);
             return () => clearTimeout(timer);
           }
         }
@@ -96,22 +97,49 @@ export default function ChatNotificationToast() {
     }
   };
 
+  const handleBellClick = () => {
+    router.push("/chat");
+  };
+
+  // Silenced completely in messages section
+  if (pathname === "/chat" || !user) return null;
+
   return (
-    <AnimatePresence>
-      {toast && (
-        <div className="fixed top-4 left-0 right-0 z-[9999] pointer-events-none flex justify-center sm:justify-end sm:right-5 sm:left-auto">
+    <>
+      {/* Floating Bell Button */}
+      <button
+        onClick={handleBellClick}
+        className="fixed z-50 h-12 w-12 flex items-center justify-center rounded-full border border-border/10 bg-white/95 text-ink-secondary hover:text-orange-500 shadow-soft backdrop-blur-xl transition-all duration-300 hover:scale-110 active:scale-95 bottom-[76px] right-4 sm:bottom-5 sm:right-5 dark:bg-slate-900/95"
+        aria-label="View Messages"
+      >
+        <Bell size={20} className={totalUnread > 0 ? "animate-wiggle text-orange-500" : ""} />
+        
+        {totalUnread > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-4 w-4 bg-orange-500 border-2 border-white dark:border-slate-950 items-center justify-center text-[9px] font-black text-white">
+              {totalUnread}
+            </span>
+          </span>
+        )}
+      </button>
+
+      {/* Floating Toast Notification sliding out/into the Bell */}
+      <AnimatePresence>
+        {toast && (
           <motion.div
-            initial={{ y: -80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -80, opacity: 0 }}
+            initial={{ scale: 0.05, y: 70, x: 70, opacity: 0 }}
+            animate={{ scale: 1, y: 0, x: 0, opacity: 1 }}
+            exit={{ scale: 0.05, y: 70, x: 70, opacity: 0 }}
+            style={{ originX: 1, originY: 1 }}
             transition={{ 
               type: "spring", 
-              stiffness: 180, 
-              damping: 20,
+              stiffness: 220, 
+              damping: 18,
               mass: 0.8
             }}
             onClick={handleToastClick}
-            className="pointer-events-auto flex w-[280px] max-w-[90%] cursor-pointer items-start gap-3 rounded-2xl border border-border/10 bg-white/95 p-3.5 shadow-soft backdrop-blur-xl transition-all hover:bg-white hover:shadow-glow-primary dark:bg-slate-900/95 dark:hover:bg-slate-900"
+            className="fixed z-[9999] flex w-[280px] max-w-[85vw] cursor-pointer items-start gap-3 rounded-2xl border border-border/10 bg-white/95 p-3.5 shadow-soft backdrop-blur-xl transition-all hover:bg-white hover:shadow-glow-primary dark:bg-slate-900/95 dark:hover:bg-slate-900 bottom-[136px] right-4 sm:bottom-20 sm:right-5"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white font-bold text-xs shadow-glow-primary">
               {toast.senderName[0]?.toUpperCase()}
@@ -139,8 +167,8 @@ export default function ChatNotificationToast() {
               </p>
             </div>
           </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
