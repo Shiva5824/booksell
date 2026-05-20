@@ -527,10 +527,11 @@ function ChatPageContent() {
 
   return (
     <main 
-      className="bg-surface-secondary md:static fixed left-0 right-0 overflow-hidden" 
+      className="bg-surface-secondary md:static fixed left-0 right-0 overflow-hidden flex flex-col md:h-[calc(100vh-60px)]" 
       style={isMobile ? {
-        top: "56px",
-        bottom: isKeyboardOpen ? "0px" : "58px"
+        top: isMobileChatOpen ? "0px" : "56px",
+        bottom: isMobileChatOpen ? "0px" : "58px",
+        zIndex: isMobileChatOpen ? 55 : 40
       } : {
         height: "calc(100vh - 60px)"
       }}
