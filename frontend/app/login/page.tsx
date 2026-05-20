@@ -34,7 +34,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
-  const { user } = useAuth();
+  const { user, dbUser } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>("landing");
   const [emailMode, setEmailMode] = useState<EmailMode>("signin");
@@ -57,8 +57,14 @@ function LoginPageContent() {
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) router.replace("/onboarding");
-  }, [user, router]);
+    if (user && dbUser) {
+      if (dbUser.college) {
+        router.replace(redirect);
+      } else {
+        router.replace("/onboarding");
+      }
+    }
+  }, [user, dbUser, router, redirect]);
 
   function clearError() {
     setError("");
@@ -79,7 +85,11 @@ function LoginPageContent() {
       if (!syncResult) {
         throw new Error("Failed to sync your profile. Please try again.");
       }
-      router.replace("/onboarding");
+      if (syncResult?.college) {
+        router.replace(redirect);
+      } else {
+        router.replace("/onboarding");
+      }
     } catch (e: any) {
       setError(e.message || "Google sign-in failed.");
     } finally {
@@ -93,6 +103,7 @@ function LoginPageContent() {
     setLoading(true);
     clearError();
     try {
+      let syncResult: any = null;
       if (emailMode === "signup") {
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         if (name) await updateProfile(cred.user, { displayName: name });
@@ -103,16 +114,20 @@ function LoginPageContent() {
 
         const token = await cred.user.getIdToken();
         localStorage.setItem("token", token);
-        const syncResult = await syncAuth({ name: name || cred.user.displayName || "", avatar: "" });
+        syncResult = await syncAuth({ name: name || cred.user.displayName || "", avatar: "" });
         if (!syncResult) throw new Error("Profile sync failed. Please try again.");
       } else {
         const cred = await signInWithEmailAndPassword(auth, email, password);
         const token = await cred.user.getIdToken();
         localStorage.setItem("token", token);
-        const syncResult = await syncAuth();
+        syncResult = await syncAuth();
         if (!syncResult) throw new Error("Profile sync failed. Please try again.");
       }
-      router.replace("/onboarding");
+      if (syncResult?.college) {
+        router.replace(redirect);
+      } else {
+        router.replace("/onboarding");
+      }
     } catch (e: any) {
       const msg: Record<string, string> = {
         "auth/user-not-found": "No account found. Sign up instead?",
@@ -154,7 +169,11 @@ function LoginPageContent() {
       localStorage.setItem("token", token);
       const syncResult = await syncAuth({ name: result.user.displayName || "User", avatar: "" });
       if (!syncResult) throw new Error("Profile sync failed. Please try again.");
-      router.replace("/onboarding");
+      if (syncResult?.college) {
+        router.replace(redirect);
+      } else {
+        router.replace("/onboarding");
+      }
     } catch (e: any) {
       setError("Invalid OTP. Please check and try again.");
     } finally {
