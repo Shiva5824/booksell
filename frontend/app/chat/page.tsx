@@ -102,6 +102,7 @@ function ChatPageContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [otherUserStatus, setOtherUserStatus] = useState<{ state: string; lastChanged?: number } | null>(null);
 
@@ -258,6 +259,65 @@ function ChatPageContent() {
     });
     return () => off(messagesRef, "value", unsubscribe);
   }, [activeThreadId]);
+
+  // High-fidelity synthesized bell chime note using the standard Web Audio API
+  const playIncomingMessageChime = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const ctx = new AudioContextClass();
+        const now = ctx.currentTime;
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = "sine";
+        osc1.frequency.value = 880; // A5 note
+        gain1.gain.setValueAtTime(0.15, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = "sine";
+        osc2.frequency.value = 1318.51; // E6 note (harmonious major fifth)
+        gain2.gain.setValueAtTime(0.08, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.8);
+        osc2.stop(now + 0.4);
+      }
+    } catch (e) {
+      console.warn("Chime synth failed:", e);
+    }
+  };
+
+  // Play incoming message chime when actively chatting
+  useEffect(() => {
+    if (messages.length === 0 || !user) {
+      // If messages list is reset or loaded empty, clear the ref
+      if (messages.length === 0) {
+        lastMessageIdRef.current = null;
+      }
+      return;
+    }
+
+    const lastMsg = messages[messages.length - 1];
+
+    if (lastMsg.id !== lastMessageIdRef.current) {
+      const isNewMessage = lastMessageIdRef.current !== null;
+      lastMessageIdRef.current = lastMsg.id;
+
+      // Only play the sound if this is a new message and it came from the other participant
+      if (isNewMessage && lastMsg.senderId !== user.uid) {
+        playIncomingMessageChime();
+      }
+    }
+  }, [messages, user]);
  
   // Listen for typing indicator of the other user in real time
   useEffect(() => {

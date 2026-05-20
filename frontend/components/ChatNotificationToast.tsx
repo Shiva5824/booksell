@@ -247,28 +247,27 @@ export default function ChatNotificationToast() {
                 current.unread >
                 (prev?.unread || 0)
               ) {
-                if (
-                  pathname === "/chat"
-                )
-                  return;
-
-                setToast({
-                  id: threadId,
-                  senderName:
-                    current.otherUserName,
-                  messageText:
-                    current.lastMessage,
-                  productTitle:
-                    current.productTitle,
-                  productId:
-                    current.productId,
-                });
-
+                // Play premium alert sound for any incoming unread messages
                 playNotificationSound();
 
-                setTimeout(() => {
-                  setToast(null);
-                }, 6000);
+                // Only show toast popup when not on the active chat page to keep view clean
+                if (pathname !== "/chat") {
+                  setToast({
+                    id: threadId,
+                    senderName:
+                      current.otherUserName,
+                    messageText:
+                      current.lastMessage,
+                    productTitle:
+                      current.productTitle,
+                    productId:
+                      current.productId,
+                  });
+
+                  setTimeout(() => {
+                    setToast(null);
+                  }, 6000);
+                }
               }
             }
           }
