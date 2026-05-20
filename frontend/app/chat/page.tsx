@@ -101,7 +101,8 @@ function ChatPageContent() {
   const [isUploading, setIsUploading] = useState(false);
   const [otherUserStatus, setOtherUserStatus] = useState<{ state: string; lastChanged?: number } | null>(null);
 
-  const [viewportHeight, setViewportHeight] = useState<string>("calc(100dvh - 60px)");
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Lock body scroll on mount to prevent browser viewport shifts
   useEffect(() => {
@@ -118,17 +119,12 @@ function ChatPageContent() {
 
     const handleResize = () => {
       const vv = window.visualViewport;
-      const isMobile = window.innerWidth < 768;
-      if (isMobile && vv) {
-        // If keyboard is open, vv.height is significantly smaller
-        const isKeyboardOpen = vv.height < window.innerHeight - 100;
-        if (isKeyboardOpen) {
-          setViewportHeight(`${vv.height - 56}px`);
-        } else {
-          setViewportHeight(`${vv.height - 56 - 58}px`);
-        }
-      } else {
-        setViewportHeight("calc(100vh - 60px)");
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (vv) {
+        // If visual viewport height is significantly less than window.innerHeight, keyboard is open
+        const open = vv.height < window.innerHeight - 100;
+        setIsKeyboardOpen(open);
       }
     };
 
@@ -336,7 +332,7 @@ function ChatPageContent() {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
     return () => clearTimeout(timer);
-  }, [messages, isOtherUserTyping, activeThreadId, viewportHeight]);
+  }, [messages, isOtherUserTyping, activeThreadId, isKeyboardOpen]);
 
   useEffect(() => {
     if (productId && user) {
@@ -486,6 +482,14 @@ function ChatPageContent() {
     }
   }
 
+  const handleFocus = () => {
+    // Force visual viewport scroll to 0 to prevent mobile browsers from shifting the page layout
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+    }, 50);
+  };
+
   const handleTextInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setText(e.target.value);
 
@@ -523,8 +527,13 @@ function ChatPageContent() {
 
   return (
     <main 
-      className="bg-surface-secondary md:static fixed left-0 right-0 top-[56px] overflow-hidden" 
-      style={{ height: viewportHeight }}
+      className="bg-surface-secondary md:static fixed left-0 right-0 overflow-hidden" 
+      style={isMobile ? {
+        top: "56px",
+        bottom: isKeyboardOpen ? "0px" : "58px"
+      } : {
+        height: "calc(100vh - 60px)"
+      }}
     >
       <div className="mx-auto grid max-w-7xl gap-0 md:gap-4 p-0 md:p-4 h-full md:grid-cols-[340px_1fr]">
 
@@ -767,6 +776,7 @@ function ChatPageContent() {
                 <input
                   ref={inputRef}
                   value={text}
+                  onFocus={handleFocus}
                   onChange={handleTextInputChange}
                   placeholder={isUploading ? "Uploading image..." : "Type your message..."}
                   disabled={isUploading}
