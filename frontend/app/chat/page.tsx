@@ -769,8 +769,24 @@ function ChatPageContent() {
                     <div 
                       key={msg.id} 
                       id={`msg-${msg.id}`}
-                      className={`flex items-center gap-2 group ${mine ? "justify-end flex-row-reverse" : "justify-start"}`}
+                      className={`flex items-center gap-2 group ${mine ? "justify-end" : "justify-start"}`}
                     >
+                      {/* For own messages, show reply button on left side */}
+                      {mine && (
+                        <button
+                          type="button"
+                          onClick={() => setReplyingTo({
+                            id: msg.id,
+                            senderName: "You",
+                            text: msg.text || "📷 Image",
+                          })}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-ink-secondary opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 hover:text-orange-500 hover:bg-orange-50 shadow-sm border border-border/10 transition-all duration-200 active:scale-90 dark:bg-slate-800 dark:hover:bg-slate-700/50"
+                          title="Reply to message"
+                        >
+                          <CornerUpLeft size={13} />
+                        </button>
+                      )}
+
                       {/* Message Bubble */}
                       <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-soft transition-all duration-300 ${
                         mine ? "bg-gradient-primary text-white rounded-bl-lg" : "bg-white text-ink border border-border/10 rounded-br-lg dark:bg-white/10"
@@ -829,19 +845,21 @@ function ChatPageContent() {
                         </span>
                       </div>
 
-                      {/* Small Quick Reply Button on Hover/Tapped */}
-                      <button
-                        type="button"
-                        onClick={() => setReplyingTo({
-                          id: msg.id,
-                          senderName: mine ? "You" : activeThread.otherUserName,
-                          text: msg.text || "📷 Image"
-                        })}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-ink-secondary opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 hover:text-orange-500 hover:bg-orange-50 shadow-sm border border-border/10 transition-all duration-200 active:scale-90 dark:bg-slate-800 dark:hover:bg-slate-700/50"
-                        title="Reply to message"
-                      >
-                        <CornerUpLeft size={13} />
-                      </button>
+                      {/* For other users, show reply button on right side */}
+                      {!mine && (
+                        <button
+                          type="button"
+                          onClick={() => setReplyingTo({
+                            id: msg.id,
+                            senderName: activeThread.otherUserName,
+                            text: msg.text || "📷 Image",
+                          })}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-ink-secondary opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 hover:text-orange-500 hover:bg-orange-50 shadow-sm border border-border/10 transition-all duration-200 active:scale-90 dark:bg-slate-800 dark:hover:bg-slate-700/50"
+                          title="Reply to message"
+                        >
+                          <CornerUpLeft size={13} />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
