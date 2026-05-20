@@ -302,9 +302,10 @@ export default function AdminDashboard() {
               </AnimatePresence>
             </div>
           </div>
+        </div>
           
           <div className="flex h-64 items-end gap-3 px-4 relative">
-            {trafficData.map((item, i) => {
+            {trafficData.map((item: any, i: number) => {
               const barHeight = (item.logins / maxLogins) * 180;
               return (
                 <div 
