@@ -860,11 +860,15 @@ function ChatPageContent() {
                       {!mine && (
                         <button
                           type="button"
-                          onClick={() => setReplyingTo({
-                            id: msg.id,
-                            senderName: activeThread.otherUserName,
-                            text: msg.text || "📷 Image",
-                          })}
+                          onClick={() => {
+                            setReplyingTo({
+                              id: msg.id,
+                              senderName: activeThread.otherUserName,
+                              text: msg.text || "📷 Image",
+                            });
+                            // Refocus input to keep mobile keyboard open
+                            inputRef.current?.focus();
+                          }}
                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-ink-secondary opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 hover:text-orange-500 hover:bg-orange-50 shadow-sm border border-border/10 transition-all duration-200 active:scale-90 dark:bg-slate-800 dark:hover:bg-slate-700/50"
                           title="Reply to message"
                         >
