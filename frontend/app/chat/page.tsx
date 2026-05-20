@@ -546,7 +546,22 @@ function ChatPageContent() {
     };
   }, [activeThreadId, user]);
 
-  return (
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (activeThreadId) {
+        sessionStorage.setItem("activeChatThreadId", activeThreadId);
+      } else {
+        sessionStorage.removeItem("activeChatThreadId");
+      }
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("activeChatThreadId");
+      }
+    };
+  }, [activeThreadId]);
+
+  return ( 
     <main 
       className="bg-surface-secondary md:static fixed left-0 right-0 overflow-hidden flex flex-col md:h-[calc(100vh-60px)]" 
       style={isMobile ? {

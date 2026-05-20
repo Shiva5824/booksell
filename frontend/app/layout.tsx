@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import ChatNotificationToast from "@/components/ChatNotificationToast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AuthProvider>
             <Navbar />
             {children}
+            <ChatNotificationToast />
           </AuthProvider>
         </ThemeProvider>
         <GoogleAnalytics gaId="G-VXJ1LRDZEZ" />
