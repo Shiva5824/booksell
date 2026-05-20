@@ -51,26 +51,32 @@ export default function ChatNotificationToast() {
         if (currentChat && (!prevChat || currentChat.timestamp > prevChat.timestamp)) {
           // If the unread count increased, it is an incoming unread message
           if (currentChat.unread > (prevChat?.unread || 0)) {
-            // Check if the user is already actively viewing this specific chat thread
-            const activeThreadId = typeof window !== "undefined" ? sessionStorage.getItem("activeChatThreadId") : null;
-            const isViewingThisThread = pathname === "/chat" && activeThreadId === threadId;
-
-            if (!isViewingThisThread) {
-              // Trigger the notification popup!
-              setToast({
-                id: threadId,
-                senderName: currentChat.otherUserName,
-                messageText: currentChat.lastMessage,
-                productTitle: currentChat.productTitle,
-                productId: currentChat.productId,
-              });
-
-              // Auto-dismiss after 6 seconds
-              const timer = setTimeout(() => {
-                setToast(null);
-              }, 6000);
-              return () => clearTimeout(timer);
+            // Pointless to show notification inside the messages section!
+            if (pathname === "/chat") {
+              return;
             }
+
+            // Trigger the notification popup!
+            setToast({
+              id: threadId,
+              senderName: currentChat.otherUserName,
+              messageText: currentChat.lastMessage,
+              productTitle: currentChat.productTitle,
+              productId: currentChat.productId,
+            });
+
+            // Play high-quality crisp instant bell chime sound
+            try {
+              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav");
+              audio.volume = 0.45;
+              audio.play().catch(() => {});
+            } catch (err) {}
+
+            // Auto-dismiss after 5 seconds
+            const timer = setTimeout(() => {
+              setToast(null);
+            }, 5000);
+            return () => clearTimeout(timer);
           }
         }
       });
@@ -93,45 +99,47 @@ export default function ChatNotificationToast() {
   return (
     <AnimatePresence>
       {toast && (
-        <motion.div
-          initial={{ x: "120%", opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: "120%", opacity: 0 }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 160, 
-            damping: 22,
-            mass: 0.9
-          }}
-          onClick={handleToastClick}
-          className="fixed bottom-5 right-5 z-[9999] flex w-[320px] cursor-pointer items-start gap-3.5 rounded-2xl border border-border/10 bg-white/95 p-4 shadow-soft backdrop-blur-xl transition-all hover:bg-white hover:shadow-glow-primary dark:bg-slate-900/95 dark:hover:bg-slate-900"
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white font-bold text-sm shadow-glow-primary">
-            {toast.senderName[0]?.toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-ping" />
-                New Message
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setToast(null);
-                }}
-                className="rounded-lg p-0.5 text-ink-tertiary hover:bg-surface-secondary hover:text-ink transition-smooth"
-              >
-                <X size={14} />
-              </button>
+        <div className="fixed top-4 left-0 right-0 z-[9999] pointer-events-none flex justify-center sm:justify-end sm:right-5 sm:left-auto">
+          <motion.div
+            initial={{ y: -80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -80, opacity: 0 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 180, 
+              damping: 20,
+              mass: 0.8
+            }}
+            onClick={handleToastClick}
+            className="pointer-events-auto flex w-[280px] max-w-[90%] cursor-pointer items-start gap-3 rounded-2xl border border-border/10 bg-white/95 p-3.5 shadow-soft backdrop-blur-xl transition-all hover:bg-white hover:shadow-glow-primary dark:bg-slate-900/95 dark:hover:bg-slate-900"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white font-bold text-xs shadow-glow-primary">
+              {toast.senderName[0]?.toUpperCase()}
             </div>
-            <h4 className="text-sm font-black text-ink mt-0.5 truncate">{toast.senderName}</h4>
-            <p className="text-[11px] text-ink-secondary mt-0.5 truncate font-semibold">Re: {toast.productTitle}</p>
-            <p className="text-xs text-ink mt-2 truncate font-semibold bg-surface-secondary/50 p-2 rounded-xl dark:bg-white/5 border border-border/5">
-              {toast.messageText}
-            </p>
-          </div>
-        </motion.div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wider flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-ping" />
+                  New Message
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setToast(null);
+                  }}
+                  className="rounded-lg p-0.5 text-ink-tertiary hover:bg-surface-secondary hover:text-ink transition-smooth"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+              <h4 className="text-xs font-black text-ink mt-0.5 truncate">{toast.senderName}</h4>
+              <p className="text-[10px] text-ink-secondary mt-0.5 truncate font-semibold">Re: {toast.productTitle}</p>
+              <p className="text-xs text-ink mt-2 truncate font-semibold bg-surface-secondary/50 p-2 rounded-xl dark:bg-white/5 border border-border/5">
+                {toast.messageText}
+              </p>
+            </div>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
