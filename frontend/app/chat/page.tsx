@@ -311,9 +311,18 @@ function ChatPageContent() {
     };
   }, [activeThreadId, activeThread]);
 
-  // Mark received messages as seen when actively viewing this thread
+  // Mark received messages as seen and reset unread count when actively viewing this thread
   useEffect(() => {
-    if (!activeThreadId || !user || messages.length === 0) return;
+    if (!activeThreadId || !user) return;
+
+    // Reset unread count for this thread in user's chat list
+    try {
+      update(ref(database, `users/${user.uid}/chats/${activeThreadId}`), {
+        unread: 0
+      });
+    } catch (err) {}
+
+    if (messages.length === 0) return;
 
     messages.forEach((msg) => {
       if (msg.senderId !== user.uid && msg.status !== "seen") {
@@ -405,8 +414,14 @@ function ChatPageContent() {
       console.error("Firebase write to messages failed:", dbErr);
     }
 
-    const updateConv = async (uid: string, otherUid: string, otherName: string) => {
+    const updateConv = async (uid: string, otherUid: string, otherName: string, isSender: boolean) => {
       try {
+        let unreadCount = 0;
+        if (!isSender) {
+          const snapshot = await get(ref(database, `users/${uid}/chats/${conversationId}/unread`));
+          unreadCount = (snapshot.val() || 0) + 1;
+        }
+
         await set(ref(database, `users/${uid}/chats/${conversationId}`), {
           productId: activeThread.productId,
           productTitle: activeThread.productTitle,
@@ -414,14 +429,14 @@ function ChatPageContent() {
           otherUserName: otherName,
           lastMessage: messageText,
           timestamp: serverTimestamp(),
-          unread: 0,
+          unread: unreadCount,
         });
       } catch (dbErr) {
         console.warn(`Could not update chats list for user: ${uid}. Verify Firebase Realtime Database Security Rules if PERMISSION_DENIED occurs. Error:`, dbErr);
       }
     };
-    await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName);
-    await updateConv(activeThread.otherUserId, user.uid, user.displayName || "User");
+    await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName, true);
+    await updateConv(activeThread.otherUserId, user.uid, user.displayName || "User", false);
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -455,8 +470,14 @@ function ChatPageContent() {
           console.error("Firebase write to messages failed:", dbErr);
         }
 
-        const updateConv = async (uid: string, otherUid: string, otherName: string) => {
+        const updateConv = async (uid: string, otherUid: string, otherName: string, isSender: boolean) => {
           try {
+            let unreadCount = 0;
+            if (!isSender) {
+              const snapshot = await get(ref(database, `users/${uid}/chats/${conversationId}/unread`));
+              unreadCount = (snapshot.val() || 0) + 1;
+            }
+
             await set(ref(database, `users/${uid}/chats/${conversationId}`), {
               productId: activeThread.productId,
               productTitle: activeThread.productTitle,
@@ -464,14 +485,14 @@ function ChatPageContent() {
               otherUserName: otherName,
               lastMessage: "📷 Image",
               timestamp: serverTimestamp(),
-              unread: 0,
+              unread: unreadCount,
             });
           } catch (dbErr) {
             console.warn(`Could not update chats list for user: ${uid}. Verify Firebase Realtime Database Security Rules if PERMISSION_DENIED occurs. Error:`, dbErr);
           }
         };
-        await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName);
-        await updateConv(activeThread.otherUserId, user.uid, user.displayName || "User");
+        await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName, true);
+        await updateConv(activeThread.otherUserId, user.uid, user.displayName || "User", false);
       }
     } catch (error) {
       console.error("Upload failed:", error);
