@@ -24,6 +24,76 @@ export default function ChatNotificationToast() {
   const [totalUnread, setTotalUnread] = useState(0);
   const previousChatsRef = useRef<Record<string, any>>({});
   const initialLoadCompleted = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Preload notification sound on client-side mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      audioRef.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav");
+      audioRef.current.volume = 0.45;
+      audioRef.current.preload = "auto";
+    }
+  }, []);
+
+  const synthesizeBellSound = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      const now = ctx.currentTime;
+      
+      // Tone 1: Primary fundamental bell body (A5 note)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(880, now);
+      
+      gain1.gain.setValueAtTime(0.2, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+      
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      
+      // Tone 2: Pure high chime overtone (E6 note)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(1318.51, now);
+      
+      gain2.gain.setValueAtTime(0.12, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      
+      osc1.start(now);
+      osc2.start(now);
+      
+      osc1.stop(now + 1.0);
+      osc2.stop(now + 0.5);
+    } catch (e) {
+      console.warn("Web Audio API synthesis failed:", e);
+    }
+  };
+
+  const playNotificationSound = () => {
+    // 1. Attempt to play preloaded high-fidelity WAV sound
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play()
+        .then(() => {
+          console.log("Preloaded WAV notification sound played successfully.");
+        })
+        .catch((err) => {
+          console.warn("WAV sound blocked or failed, falling back to Web Audio API synthesizer...", err);
+          // 2. Fall back to pure programmatic Web Audio API digital bell chime
+          synthesizeBellSound();
+        });
+    } else {
+      synthesizeBellSound();
+    }
+  };
 
   // Sync total unread count from Firebase Realtime Database
   useEffect(() => {
@@ -66,12 +136,8 @@ export default function ChatNotificationToast() {
               productId: currentChat.productId,
             });
 
-            // Premium crisp instant notification chime sound
-            try {
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav");
-              audio.volume = 0.45;
-              audio.play().catch(() => {});
-            } catch (err) {}
+            // Play dynamic preloaded / synthesized chime sound
+            playNotificationSound();
 
             // Auto-dismiss after 6 seconds
             const timer = setTimeout(() => {
