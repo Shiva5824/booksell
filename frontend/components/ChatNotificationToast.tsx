@@ -124,22 +124,21 @@ export default function ChatNotificationToast() {
         )}
       </button>
 
-      {/* Floating Toast Notification sliding out/into the Bell */}
-      <AnimatePresence>
+      {/* Floating Toast Notification — GPU-only translateY+opacity, no spring, no scale */}
+      <AnimatePresence mode="wait">
         {toast && (
           <motion.div
-            initial={{ scale: 0.05, y: 70, x: 70, opacity: 0 }}
-            animate={{ scale: 1, y: 0, x: 0, opacity: 1 }}
-            exit={{ scale: 0.05, y: 70, x: 70, opacity: 0 }}
-            style={{ originX: 1, originY: 1 }}
-            transition={{ 
-              type: "spring", 
-              stiffness: 220, 
-              damping: 18,
-              mass: 0.8
+            key={toast.id}
+            initial={{ y: 16, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 16, opacity: 0 }}
+            transition={{
+              duration: 0.26,
+              ease: [0.25, 0.46, 0.45, 0.94]
             }}
             onClick={handleToastClick}
-            className="fixed z-[9999] flex w-[280px] max-w-[85vw] cursor-pointer items-start gap-3 rounded-2xl border border-border/10 bg-white/95 p-3.5 shadow-soft backdrop-blur-xl transition-all hover:bg-white hover:shadow-glow-primary dark:bg-slate-900/95 dark:hover:bg-slate-900 bottom-[136px] right-4 sm:bottom-20 sm:right-5"
+            style={{ willChange: "transform, opacity" }}
+            className="fixed z-[9999] flex w-[280px] max-w-[85vw] cursor-pointer items-start gap-3 rounded-2xl border border-border/10 bg-white/95 p-3.5 shadow-soft backdrop-blur-xl hover:bg-white hover:shadow-glow-primary dark:bg-slate-900/95 dark:hover:bg-slate-900 bottom-[136px] right-4 sm:bottom-20 sm:right-5"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white font-bold text-xs shadow-glow-primary">
               {toast.senderName[0]?.toUpperCase()}
@@ -155,7 +154,7 @@ export default function ChatNotificationToast() {
                     e.stopPropagation();
                     setToast(null);
                   }}
-                  className="rounded-lg p-0.5 text-ink-tertiary hover:bg-surface-secondary hover:text-ink transition-smooth"
+                  className="rounded-lg p-0.5 text-ink-tertiary hover:bg-surface-secondary hover:text-ink"
                 >
                   <X size={12} />
                 </button>
