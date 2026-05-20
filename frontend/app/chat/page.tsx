@@ -100,6 +100,54 @@ function ChatPageContent() {
   const [isUploading, setIsUploading] = useState(false);
   const [otherUserStatus, setOtherUserStatus] = useState<{ state: string; lastChanged?: number } | null>(null);
 
+  const [viewportHeight, setViewportHeight] = useState<string>("calc(100dvh - 60px)");
+
+  // Lock body scroll on mount to prevent browser viewport shifts
+  useEffect(() => {
+    const originalStyle = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
+
+  // Visual viewport height tracking for mobile virtual keyboard support
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      const vv = window.visualViewport;
+      const isMobile = window.innerWidth < 768;
+      if (isMobile && vv) {
+        // If keyboard is open, vv.height is significantly smaller
+        const isKeyboardOpen = vv.height < window.innerHeight - 100;
+        if (isKeyboardOpen) {
+          setViewportHeight(`${vv.height - 56}px`);
+        } else {
+          setViewportHeight(`${vv.height - 56 - 58}px`);
+        }
+      } else {
+        setViewportHeight("calc(100vh - 60px)");
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+      window.visualViewport.addEventListener("scroll", handleResize);
+    }
+    window.addEventListener("resize", handleResize);
+    
+    handleResize();
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+        window.visualViewport.removeEventListener("scroll", handleResize);
+      }
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
   useEffect(() => {
     if (!loading && !user) router.replace("/login?redirect=/chat");
   }, [user, loading, router]);
@@ -466,11 +514,14 @@ function ChatPageContent() {
   }, [activeThreadId, user]);
 
   return (
-    <main className="bg-surface-secondary pb-nav" style={{ height: "calc(100dvh - 60px)" }}>
-      <div className="mx-auto grid max-w-7xl gap-4 px-4 py-4 h-full md:grid-cols-[340px_1fr]">
+    <main 
+      className="bg-surface-secondary md:static fixed left-0 right-0 top-[56px] overflow-hidden" 
+      style={{ height: viewportHeight }}
+    >
+      <div className="mx-auto grid max-w-7xl gap-0 md:gap-4 p-0 md:p-4 h-full md:grid-cols-[340px_1fr]">
 
         {/* Thread Sidebar */}
-        <aside className={`${isMobileChatOpen ? "hidden" : "flex"} md:flex flex-col rounded-2xl border border-border/10 bg-white shadow-soft overflow-hidden dark:bg-white/5`}>
+        <aside className={`${isMobileChatOpen ? "hidden" : "flex"} md:flex flex-col md:rounded-2xl border-0 md:border border-border/10 bg-white shadow-soft overflow-hidden dark:bg-white/5`}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-border/10">
             <h1 className="text-xl font-black text-ink sm:text-2xl">Messages</h1>
             <span className="rounded-xl bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-500 dark:bg-orange-500/10">
@@ -536,7 +587,7 @@ function ChatPageContent() {
         </aside>
 
         {/* Chat Window */}
-        <section className={`${isMobileChatOpen ? "flex" : "hidden"} md:flex flex-col overflow-hidden rounded-2xl border border-border/10 bg-white shadow-soft dark:bg-white/5`}>
+        <section className={`${isMobileChatOpen ? "flex" : "hidden"} md:flex flex-col overflow-hidden md:rounded-2xl border-0 md:border border-border/10 bg-white shadow-soft dark:bg-white/5`}>
           {activeThread ? (
             <>
               {/* Header */}
