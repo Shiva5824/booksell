@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { getAdminStats } from "@/services/api";
+import { getAdminStats, resetAdminTraffic } from "@/services/api";
 import { getSiteContact, updateSiteContact } from "@/services/site";
 import { Users, ShoppingBag, CheckCircle2, TrendingUp, Calendar, ArrowUpRight, Edit2, Trash2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -84,23 +84,10 @@ export default function AdminDashboard() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const trafficData = timeframe === "7 days" 
-    ? [
-        { label: "Mon", logins: 45 },
-        { label: "Tue", logins: 62 },
-        { label: "Wed", logins: 58 },
-        { label: "Thu", logins: 75 },
-        { label: "Fri", logins: 90 },
-        { label: "Sat", logins: 82 },
-        { label: "Sun", logins: 110 }
-      ]
-    : [
-        { label: "Week 1", logins: 180 },
-        { label: "Week 2", logins: 240 },
-        { label: "Week 3", logins: 310 },
-        { label: "Week 4", logins: 420 }
-      ];
+    ? (stats?.traffic7Days || [])
+    : (stats?.traffic30Days || []);
 
-  const maxLogins = Math.max(...trafficData.map(d => d.logins), 1);
+  const maxLogins = Math.max(...trafficData.map((d: any) => d.logins), 1);
 
   if (loading) return <div className="animate-pulse space-y-8">
     <div className="h-10 w-48 rounded-lg bg-surface-tertiary" />
@@ -246,23 +233,42 @@ export default function AdminDashboard() {
       {/* Basic Traffic Chart Mockup */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="col-span-1 lg:col-span-2 rounded-3xl border border-border/10 bg-surface-bg p-8 shadow-card overflow-visible">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
               <h3 className="text-lg font-black text-ink">Login Traffic</h3>
               <p className="text-sm font-medium text-ink-secondary">Daily user activity over the last {timeframe}.</p>
             </div>
             
-            {/* Custom Dropdown */}
-            <div className="relative">
-              <button 
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-3 rounded-xl border border-border/10 bg-surface-secondary px-4 py-2 text-xs font-black text-ink hover:bg-surface-tertiary transition-all"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  if (confirm("Are you sure you want to reset all traffic statistics? This will clear the logins data.")) {
+                    try {
+                      await resetAdminTraffic();
+                      const data = await getAdminStats();
+                      setStats(data);
+                      alert("Traffic data reset successfully!");
+                    } catch (err) {
+                      alert("Failed to reset traffic data.");
+                    }
+                  }
+                }}
+                className="flex items-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-black text-red-600 hover:bg-red-500/20 transition-all select-none"
               >
-                Last {timeframe}
-                <motion.div animate={{ rotate: isDropdownOpen ? 180 : 0 }}>
-                  <TrendingUp size={14} className="text-primary" />
-                </motion.div>
+                Reset Traffic
               </button>
+              
+              {/* Custom Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-3 rounded-xl border border-border/10 bg-surface-secondary px-4 py-2 text-xs font-black text-ink hover:bg-surface-tertiary transition-all"
+                >
+                  Last {timeframe}
+                  <motion.div animate={{ rotate: isDropdownOpen ? 180 : 0 }}>
+                    <TrendingUp size={14} className="text-primary" />
+                  </motion.div>
+                </button>
 
               <AnimatePresence>
                 {isDropdownOpen && (
@@ -336,25 +342,39 @@ export default function AdminDashboard() {
         <div className="rounded-3xl border border-border/10 bg-surface-bg p-8 shadow-card">
           <h3 className="text-lg font-black text-ink mb-6">User Distribution</h3>
           <div className="space-y-6">
-            {[
-              { label: "Engineering (IPE)", value: 45, color: "bg-orange-500" },
-              { label: "Medical (NEET)", value: 30, color: "bg-blue-500" },
-              { label: "EAPCET/JEE", value: 25, color: "bg-emerald-500" },
-            ].map(item => (
-              <div key={item.label} className="space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span className="text-ink">{item.label}</span>
-                  <span className="text-ink-secondary">{item.value}%</span>
+            {(() => {
+              const ipeVal = stats?.distribution?.ipe || 0;
+              const neetVal = stats?.distribution?.neet || 0;
+              const eapcetVal = stats?.distribution?.eapcet || 0;
+              const jeeVal = stats?.distribution?.jee || 0;
+              
+              const totalDist = ipeVal + neetVal + eapcetVal + jeeVal || 1;
+              
+              const items = [
+                { label: "Engineering (IPE)", count: ipeVal, percent: Math.round((ipeVal / totalDist) * 100), color: "bg-orange-500" },
+                { label: "Medical (NEET)", count: neetVal, percent: Math.round((neetVal / totalDist) * 100), color: "bg-blue-500" },
+                { label: "EAPCET", count: eapcetVal, percent: Math.round((eapcetVal / totalDist) * 100), color: "bg-emerald-500" },
+                { label: "JEE", count: jeeVal, percent: Math.round((jeeVal / totalDist) * 100), color: "bg-purple-500" },
+              ];
+
+              return items.map(item => (
+                <div key={item.label} className="space-y-2">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-ink">
+                      {item.label} <span className="text-ink-tertiary font-bold text-[10px] ml-1">({item.count} items)</span>
+                    </span>
+                    <span className="text-ink-secondary">{item.percent}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-surface-tertiary overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${item.percent}%` }}
+                      className={`h-full rounded-full ${item.color}`} 
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full rounded-full bg-surface-tertiary overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${item.value}%` }}
-                    className={`h-full rounded-full ${item.color}`} 
-                  />
-                </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
           
           <div className="mt-10 rounded-2xl bg-surface-tertiary p-5">

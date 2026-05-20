@@ -16,14 +16,86 @@ export async function getStats(req, res, next) {
     startOfToday.setHours(0, 0, 0, 0);
     const loginsToday = await User.countDocuments({ lastLogin: { $gte: startOfToday } });
 
+    // Dynamic category counts
+    const [ipeCount, neetCount, eapcetCount, jeeCount] = await Promise.all([
+      Product.countDocuments({ category: "ipe" }),
+      Product.countDocuments({ category: "neet" }),
+      Product.countDocuments({ category: "eapcet" }),
+      Product.countDocuments({ category: "jee" })
+    ]);
+
+    // Dynamic 7-day logins traffic list
+    const traffic7Days = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      
+      const startOfDay = new Date(d);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(d);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const count = await User.countDocuments({
+        lastLogin: { $gte: startOfDay, $lte: endOfDay }
+      });
+      
+      const label = d.toLocaleDateString("en-US", { weekday: "short" });
+      traffic7Days.push({ label, logins: count });
+    }
+
+    // Dynamic 30-day logins traffic list (grouped into 4 weeks)
+    const traffic30Days = [];
+    const weekLabels = ["Week 1", "Week 2", "Week 3", "Week 4"];
+    for (let w = 0; w < 4; w++) {
+      const startDayOffset = 30 - w * 7;
+      const endDayOffset = 30 - (w + 1) * 7;
+      
+      const startOfRange = new Date();
+      startOfRange.setDate(now.getDate() - startDayOffset);
+      startOfRange.setHours(0, 0, 0, 0);
+      
+      const endOfRange = new Date();
+      endOfRange.setDate(now.getDate() - endDayOffset);
+      endOfRange.setHours(23, 59, 59, 999);
+      
+      const count = await User.countDocuments({
+        lastLogin: { $gte: startOfRange, $lte: endOfRange }
+      });
+      
+      traffic30Days.push({ label: weekLabels[w], logins: count });
+    }
+
     res.json({
       data: {
         totalUsers,
         totalProducts,
         activeProducts,
         soldProducts,
-        loginsToday
+        loginsToday,
+        distribution: {
+          ipe: ipeCount,
+          neet: neetCount,
+          eapcet: eapcetCount,
+          jee: jeeCount
+        },
+        traffic7Days,
+        traffic30Days
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetTraffic(req, res, next) {
+  try {
+    // Reset all users' lastLogin to a historical date far in the past to clear current traffic
+    await User.updateMany({}, { $set: { lastLogin: new Date(0) } });
+    res.json({
+      success: true,
+      message: "Traffic statistics successfully reset."
     });
   } catch (error) {
     next(error);

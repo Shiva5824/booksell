@@ -6,7 +6,8 @@ import {
   toggleAdminRole,
   getAllProducts, 
   toggleProductStatus,
-  deleteUserAccount
+  deleteUserAccount,
+  resetTraffic
 } from "../controllers/admin.controller.js";
 import { updateSiteContact } from "../controllers/site.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
@@ -18,6 +19,7 @@ const router = Router();
 router.use(requireAuth, requireAdmin);
 
 router.get("/stats", getStats);
+router.post("/traffic/reset", resetTraffic);
 router.get("/users", getAllUsers);
 router.post("/users/:id/toggle", toggleUserStatus);
 router.post("/users/:id/role", toggleAdminRole);
