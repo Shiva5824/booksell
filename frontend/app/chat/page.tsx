@@ -97,6 +97,7 @@ function ChatPageContent() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [otherUserStatus, setOtherUserStatus] = useState<{ state: string; lastChanged?: number } | null>(null);
 
@@ -329,10 +330,13 @@ function ChatPageContent() {
     });
   }, [messages, activeThreadId, user]);
 
-  // Auto-scroll messages feed to bottom on new messages, typing, or thread change
+  // Auto-scroll messages feed to bottom on new messages, typing, thread change, or viewport resize (keyboard up/down)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isOtherUserTyping, activeThreadId]);
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages, isOtherUserTyping, activeThreadId, viewportHeight]);
 
   useEffect(() => {
     if (productId && user) {
@@ -369,6 +373,10 @@ function ChatPageContent() {
     if (!text.trim() || !activeThread || !user) return;
     const messageText = text.trim();
     setText("");
+
+    // Maintain input focus so keyboard stays open on mobile
+    inputRef.current?.focus();
+
     const conversationId = activeThread.id;
     
     // Reset typing state immediately in database upon sending
@@ -757,6 +765,7 @@ function ChatPageContent() {
                   <ImageIcon size={18} />
                 </button>
                 <input
+                  ref={inputRef}
                   value={text}
                   onChange={handleTextInputChange}
                   placeholder={isUploading ? "Uploading image..." : "Type your message..."}
