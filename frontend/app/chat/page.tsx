@@ -176,6 +176,20 @@ function ChatPageContent() {
     return () => off(threadsRef, "value", unsubscribe);
   }, [user]);
 
+  const activeThread = useMemo(() => {
+    return threads.find((t) => t.id === activeThreadId) ||
+      (initiatingProduct && activeThreadId?.includes(initiatingProduct._id) ? {
+        id: activeThreadId!,
+        productId: initiatingProduct._id,
+        productTitle: initiatingProduct.title,
+        otherUserId: (initiatingProduct.sellerId as any).firebaseUid || (initiatingProduct.sellerId as any)._id,
+        otherUserName: (initiatingProduct.sellerId as any).name,
+        lastMessage: "",
+        timestamp: Date.now(),
+        unread: 0,
+      } : null);
+  }, [threads, activeThreadId, initiatingProduct]);
+
   // Auto‑focus the message input whenever a thread becomes active (e.g., user opens a chat)
   useEffect(() => {
     if (activeThread && inputRef.current) {
