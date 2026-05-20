@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, CheckCheck, Image as ImageIcon, MessageCircle,
   MoreVertical, Paperclip, Phone, Search, Send, ShieldCheck,
+  CornerUpLeft, X,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -21,6 +22,9 @@ interface Message {
   imageUrl?: string;
   timestamp: number;
   status?: string;
+  replyToId?: string;
+  replyToSender?: string;
+  replyToText?: string;
 }
 
 interface Thread {
@@ -103,6 +107,11 @@ function ChatPageContent() {
 
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{
+    id: string;
+    senderName: string;
+    text: string;
+  } | null>(null);
 
   // Lock body scroll on mount to prevent browser viewport shifts
   useEffect(() => {
@@ -404,12 +413,21 @@ function ChatPageContent() {
     } catch (err) {}
 
     try {
-      await push(ref(database, `messages/${conversationId}`), {
+      const messagePayload: any = {
         senderId: user.uid,
         text: messageText,
         timestamp: serverTimestamp(),
         status: initialStatus,
-      });
+      };
+
+      if (replyingTo) {
+        messagePayload.replyToId = replyingTo.id;
+        messagePayload.replyToSender = replyingTo.senderName;
+        messagePayload.replyToText = replyingTo.text;
+      }
+
+      await push(ref(database, `messages/${conversationId}`), messagePayload);
+      setReplyingTo(null);
     } catch (dbErr) {
       console.error("Firebase write to messages failed:", dbErr);
     }
@@ -459,13 +477,22 @@ function ChatPageContent() {
         } catch (err) {}
 
         try {
-          await push(ref(database, `messages/${conversationId}`), {
+          const imagePayload: any = {
             senderId: user.uid,
             text: "📷 Image",
             imageUrl: urls[0],
             timestamp: serverTimestamp(),
             status: initialStatus,
-          });
+          };
+
+          if (replyingTo) {
+            imagePayload.replyToId = replyingTo.id;
+            imagePayload.replyToSender = replyingTo.senderName;
+            imagePayload.replyToText = replyingTo.text;
+          }
+
+          await push(ref(database, `messages/${conversationId}`), imagePayload);
+          setReplyingTo(null);
         } catch (dbErr) {
           console.error("Firebase write to messages failed:", dbErr);
         }
@@ -502,6 +529,19 @@ function ChatPageContent() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
+
+  const scrollToMessage = (msgId: string) => {
+    const element = document.getElementById(`msg-${msgId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      
+      // Add dynamic flash highlight effect
+      element.classList.add("animate-highlight-flash");
+      setTimeout(() => {
+        element.classList.remove("animate-highlight-flash");
+      }, 1500);
+    }
+  };
 
   const handleFocus = () => {
     // Force visual viewport scroll to 0 to prevent mobile browsers from shifting the page layout
@@ -726,10 +766,34 @@ function ChatPageContent() {
                   const mine = msg.senderId === user.uid;
                   const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
                   return (
-                    <div key={msg.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-soft ${
+                    <div 
+                      key={msg.id} 
+                      id={`msg-${msg.id}`}
+                      className={`flex items-center gap-2 group ${mine ? "justify-end flex-row-reverse" : "justify-start"}`}
+                    >
+                      {/* Message Bubble */}
+                      <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-soft transition-all duration-300 ${
                         mine ? "bg-gradient-primary text-white rounded-bl-lg" : "bg-white text-ink border border-border/10 rounded-br-lg dark:bg-white/10"
                       }`}>
+                        {/* Reply Quote Preview inside Bubble */}
+                        {msg.replyToId && (
+                          <div 
+                            onClick={() => scrollToMessage(msg.replyToId!)}
+                            className={`mb-2 cursor-pointer rounded-lg border-l-2 px-2.5 py-1.5 text-xs transition-smooth text-left ${
+                              mine 
+                                ? "bg-white/10 border-white/40 text-white/90 hover:bg-white/15" 
+                                : "bg-surface-secondary border-orange-500 text-ink-secondary hover:bg-surface-tertiary dark:bg-white/5 dark:hover:bg-white/10"
+                            }`}
+                          >
+                            <span className="block font-black text-[9px] uppercase tracking-wider opacity-80">
+                              {msg.replyToSender}
+                            </span>
+                            <span className="block truncate font-medium mt-0.5">
+                              {msg.replyToText}
+                            </span>
+                          </div>
+                        )}
+
                         {msg.imageUrl && (
                           <img 
                             src={msg.imageUrl} 
@@ -764,6 +828,20 @@ function ChatPageContent() {
                           )}
                         </span>
                       </div>
+
+                      {/* Small Quick Reply Button on Hover/Tapped */}
+                      <button
+                        type="button"
+                        onClick={() => setReplyingTo({
+                          id: msg.id,
+                          senderName: mine ? "You" : activeThread.otherUserName,
+                          text: msg.text || "📷 Image"
+                        })}
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-ink-secondary opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 hover:text-orange-500 hover:bg-orange-50 shadow-sm border border-border/10 transition-all duration-200 active:scale-90 dark:bg-slate-800 dark:hover:bg-slate-700/50"
+                        title="Reply to message"
+                      >
+                        <CornerUpLeft size={13} />
+                      </button>
                     </div>
                   );
                 })}
@@ -781,6 +859,30 @@ function ChatPageContent() {
                 )}
                 <div ref={messagesEndRef} />
               </div>
+
+              {/* Replying To Preview Bar */}
+              {replyingTo && (
+                <div className="flex items-center justify-between border-t border-border/10 bg-orange-50/70 px-4 py-2 dark:bg-orange-500/5 backdrop-blur-md animate-fade-in shrink-0">
+                  <div className="flex items-start gap-2.5 border-l-4 border-orange-500 pl-3 min-w-0">
+                    <div className="min-w-0">
+                      <span className="block text-[10px] font-black text-orange-500 uppercase tracking-wider">
+                        Replying to {replyingTo.senderName}
+                      </span>
+                      <span className="block truncate text-xs text-ink-secondary font-semibold mt-0.5">
+                        {replyingTo.text}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReplyingTo(null)}
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg hover:bg-surface-secondary text-ink-tertiary hover:text-ink transition-smooth"
+                    title="Cancel reply"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
 
               {/* Input */}
               <form

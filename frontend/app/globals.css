@@ -268,3 +268,14 @@ html.light ::-webkit-scrollbar-thumb:hover {
   animation: wiggle 1s ease-in-out infinite;
   transform-origin: top center;
 }
+
+/* Custom highlight-flash micro-interaction for message scrolling */
+@keyframes highlight-flash {
+  0%, 100% { background-color: transparent; }
+  25%, 75% { background-color: rgba(249, 115, 22, 0.2); }
+}
+
+.animate-highlight-flash {
+  animation: highlight-flash 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border-radius: 16px;
+}
