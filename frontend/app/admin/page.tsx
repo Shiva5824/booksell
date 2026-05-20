@@ -81,6 +81,26 @@ export default function AdminDashboard() {
 
   const [timeframe, setTimeframe] = useState("7 days");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  const trafficData = timeframe === "7 days" 
+    ? [
+        { label: "Mon", logins: 45 },
+        { label: "Tue", logins: 62 },
+        { label: "Wed", logins: 58 },
+        { label: "Thu", logins: 75 },
+        { label: "Fri", logins: 90 },
+        { label: "Sat", logins: 82 },
+        { label: "Sun", logins: 110 }
+      ]
+    : [
+        { label: "Week 1", logins: 180 },
+        { label: "Week 2", logins: 240 },
+        { label: "Week 3", logins: 310 },
+        { label: "Week 4", logins: 420 }
+      ];
+
+  const maxLogins = Math.max(...trafficData.map(d => d.logins), 1);
 
   if (loading) return <div className="animate-pulse space-y-8">
     <div className="h-10 w-48 rounded-lg bg-surface-tertiary" />
@@ -277,18 +297,39 @@ export default function AdminDashboard() {
             </div>
           </div>
           
-          <div className="flex h-64 items-end gap-3 px-4">
-            {[45, 62, 58, 75, 90, 82, 110].map((val, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-3">
-                <motion.div 
-                  initial={{ height: 0 }}
-                  animate={{ height: `${val}%` }}
-                  transition={{ delay: 0.5 + i * 0.1, duration: 1 }}
-                  className="w-full rounded-t-xl bg-gradient-to-t from-primary to-orange-400 opacity-80 hover:opacity-100 transition-opacity" 
-                />
-                <span className="text-[10px] font-black uppercase text-ink-tertiary">Day {i+1}</span>
-              </div>
-            ))}
+          <div className="flex h-64 items-end gap-3 px-4 relative">
+            {trafficData.map((item, i) => {
+              const barHeight = (item.logins / maxLogins) * 180;
+              return (
+                <div 
+                  key={i} 
+                  className="relative flex flex-1 flex-col items-center gap-3 h-full justify-end"
+                  onMouseEnter={() => setHoveredIndex(i)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                >
+                  <AnimatePresence>
+                    {hoveredIndex === i && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute -top-6 z-10 rounded-lg bg-ink px-2.5 py-1 text-[10px] font-bold text-white shadow-soft dark:bg-white dark:text-slate-900 select-none whitespace-nowrap"
+                      >
+                        {item.logins} logins
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  <motion.div 
+                    initial={{ height: 0 }}
+                    animate={{ height: barHeight }}
+                    transition={{ delay: 0.1 + i * 0.05, duration: 0.6, ease: "easeOut" }}
+                    className="w-full rounded-t-xl bg-gradient-primary opacity-85 hover:opacity-100 transition-opacity cursor-pointer shadow-soft" 
+                  />
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase text-ink-tertiary select-none">{item.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
