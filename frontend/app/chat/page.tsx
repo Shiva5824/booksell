@@ -176,19 +176,12 @@ function ChatPageContent() {
     return () => off(threadsRef, "value", unsubscribe);
   }, [user]);
 
-  const activeThread = useMemo(() => {
-    return threads.find((t) => t.id === activeThreadId) ||
-      (initiatingProduct && activeThreadId?.includes(initiatingProduct._id) ? {
-        id: activeThreadId!,
-        productId: initiatingProduct._id,
-        productTitle: initiatingProduct.title,
-        otherUserId: (initiatingProduct.sellerId as any).firebaseUid || (initiatingProduct.sellerId as any)._id,
-        otherUserName: (initiatingProduct.sellerId as any).name,
-        lastMessage: "",
-        timestamp: Date.now(),
-        unread: 0,
-      } : null);
-  }, [threads, activeThreadId, initiatingProduct]);
+  // Auto‑focus the message input whenever a thread becomes active (e.g., user opens a chat)
+  useEffect(() => {
+    if (activeThread && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [activeThread]);
 
   // Fetch profile details for all participants and cache them
   useEffect(() => {
@@ -775,11 +768,15 @@ function ChatPageContent() {
                       {mine && (
                         <button
                           type="button"
-                          onClick={() => setReplyingTo({
-                            id: msg.id,
-                            senderName: "You",
-                            text: msg.text || "📷 Image",
-                          })}
+                          onClick={() => {
+                            setReplyingTo({
+                              id: msg.id,
+                              senderName: "You",
+                              text: msg.text || "📷 Image",
+                            });
+                            // Refocus input to keep mobile keyboard open
+                            inputRef.current?.focus();
+                          }}
                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-ink-secondary opacity-70 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 hover:text-orange-500 hover:bg-orange-50 shadow-sm border border-border/10 transition-all duration-200 active:scale-90 dark:bg-slate-800 dark:hover:bg-slate-700/50"
                           title="Reply to message"
                         >
