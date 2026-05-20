@@ -94,10 +94,15 @@ export default function ChatNotificationToast() {
     <AnimatePresence>
       {toast && (
         <motion.div
-          initial={{ x: 300, opacity: 0 }}
+          initial={{ x: "120%", opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 300, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          exit={{ x: "120%", opacity: 0 }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 160, 
+            damping: 22,
+            mass: 0.9
+          }}
           onClick={handleToastClick}
           className="fixed bottom-5 right-5 z-[9999] flex w-[320px] cursor-pointer items-start gap-3.5 rounded-2xl border border-border/10 bg-white/95 p-4 shadow-soft backdrop-blur-xl transition-all hover:bg-white hover:shadow-glow-primary dark:bg-slate-900/95 dark:hover:bg-slate-900"
         >
