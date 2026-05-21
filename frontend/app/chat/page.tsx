@@ -36,6 +36,8 @@ interface Thread {
   lastMessage: string;
   timestamp: number;
   unread: number;
+  clearedAt?: number;
+  deleted?: boolean;
 }
 
 const WhatsAppSingleCheck = ({ className, size = 15 }: { className?: string; size?: number }) => (
@@ -84,7 +86,7 @@ export default function ChatPage() {
 }
 
 function ChatPageContent() {
-  const { user, loading } = useAuth();
+  const { user, dbUser, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const productId = searchParams.get("product");
@@ -95,7 +97,7 @@ function ChatPageContent() {
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
   const [text, setText] = useState("");
   const [initiatingProduct, setInitiatingProduct] = useState<Product | null>(null);
-  const [profiles, setProfiles] = useState<Record<string, {avatar?: string; phone?: string}>>({});
+  const [profiles, setProfiles] = useState<Record<string, {avatar?: string; phone?: string; name?: string}>>({});
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -113,6 +115,20 @@ function ChatPageContent() {
     senderName: string;
     text: string;
   } | null>(null);
+  
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Lock body scroll on mount to prevent browser viewport shifts
   useEffect(() => {
@@ -178,8 +194,23 @@ function ChatPageContent() {
   }, [user]);
 
   const activeThread = useMemo(() => {
-    return threads.find((t) => t.id === activeThreadId) ||
-      (initiatingProduct && activeThreadId?.includes(initiatingProduct._id) ? {
+    const existingThread = threads.find((t) => t.id === activeThreadId);
+    
+    if (existingThread) {
+      if (initiatingProduct && activeThreadId?.includes(initiatingProduct._id)) {
+        return {
+          ...existingThread,
+          productId: existingThread.productId || initiatingProduct._id,
+          productTitle: existingThread.productTitle || initiatingProduct.title,
+          otherUserId: existingThread.otherUserId || (initiatingProduct.sellerId as any).firebaseUid || (initiatingProduct.sellerId as any)._id,
+          otherUserName: existingThread.otherUserName || (initiatingProduct.sellerId as any).name,
+        };
+      }
+      return existingThread;
+    }
+
+    if (initiatingProduct && activeThreadId?.includes(initiatingProduct._id)) {
+      return {
         id: activeThreadId!,
         productId: initiatingProduct._id,
         productTitle: initiatingProduct.title,
@@ -188,8 +219,47 @@ function ChatPageContent() {
         lastMessage: "",
         timestamp: Date.now(),
         unread: 0,
-      } : null);
+      };
+    }
+    
+    return null;
   }, [threads, activeThreadId, initiatingProduct]);
+
+  // Filter messages based on when the user cleared the chat
+  const visibleMessages = useMemo(() => {
+    return messages.filter(m => !activeThread?.clearedAt || m.timestamp > activeThread.clearedAt);
+  }, [messages, activeThread?.clearedAt]);
+
+  const handleClearChat = async () => {
+    if (!user || !activeThreadId || !activeThread) return;
+    if (!window.confirm("Are you sure you want to clear messages in this chat? They will only be deleted for you.")) return;
+    
+    try {
+      await update(ref(database, `users/${user.uid}/chats/${activeThreadId}`), {
+        clearedAt: Date.now()
+      });
+      setShowDropdown(false);
+    } catch (error) {
+      console.error("Failed to clear chat:", error);
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!user || !activeThreadId) return;
+    if (!window.confirm("Are you sure you want to delete this chat from your list?")) return;
+    
+    try {
+      await update(ref(database, `users/${user.uid}/chats/${activeThreadId}`), {
+        deleted: true,
+        clearedAt: Date.now()
+      });
+      setActiveThreadId(null);
+      setIsMobileChatOpen(false);
+      setShowDropdown(false);
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+    }
+  };
 
   // Auto‑focus the message input whenever a thread becomes active (e.g., user opens a chat)
   useEffect(() => {
@@ -198,39 +268,42 @@ function ChatPageContent() {
     }
   }, [activeThread]);
 
+  const fetchedProfilesRef = useRef<Set<string>>(new Set());
+
   // Fetch profile details for all participants and cache them
   useEffect(() => {
     async function fetchProfiles() {
-      // 1. Fetch active thread user profile
-      if (activeThread && activeThread.otherUserId) {
-        const uid = activeThread.otherUserId;
-        if (!profiles[uid]) {
-          const profile = await getUserProfile(uid);
-          if (profile) {
-            setProfiles((prev) => ({
-              ...prev,
-              [uid]: { avatar: profile.avatar || undefined, phone: profile.phone || undefined }
-            }));
-          }
-        }
-      }
+      const uidsToFetch = new Set<string>();
 
-      // 2. Fetch sidebar thread profiles in the background
-      threads.forEach(async (thread) => {
-        if (thread.otherUserId && !profiles[thread.otherUserId]) {
-          const profile = await getUserProfile(thread.otherUserId);
-          if (profile) {
-            setProfiles((prev) => ({
-              ...prev,
-              [thread.otherUserId]: { avatar: profile.avatar || undefined, phone: profile.phone || undefined }
-            }));
-          }
+      if (activeThread && activeThread.otherUserId) {
+        uidsToFetch.add(activeThread.otherUserId);
+      }
+      threads.forEach((thread) => {
+        if (thread.otherUserId) uidsToFetch.add(thread.otherUserId);
+      });
+
+      Array.from(uidsToFetch).forEach(async (uid) => {
+        // Prevent re-fetching if we've already attempted it
+        if (!fetchedProfilesRef.current.has(uid)) {
+          fetchedProfilesRef.current.add(uid);
+          const profile = await getUserProfile(uid);
+          
+          setProfiles((prev) => ({
+            ...prev,
+            [uid]: profile ? { 
+              avatar: profile.avatar || undefined, 
+              phone: profile.phone || undefined, 
+              name: profile.name || undefined 
+            } : {
+              name: "Unknown User" // Fallback for deleted accounts
+            }
+          }));
         }
       });
     }
 
     fetchProfiles();
-  }, [activeThread, threads, profiles]);
+  }, [activeThread, threads]);
 
   const sellerInfo = useMemo(() => {
     if (activeThread && profiles[activeThread.otherUserId]) {
@@ -391,12 +464,15 @@ function ChatPageContent() {
   useEffect(() => {
     if (!activeThreadId || !user) return;
 
-    // Reset unread count for this thread in user's chat list
-    try {
-      update(ref(database, `users/${user.uid}/chats/${activeThreadId}`), {
-        unread: 0
-      });
-    } catch (err) {}
+    // Reset unread count for this thread in user's chat list only if it exists and has unread messages
+    const threadToUpdate = threads.find(t => t.id === activeThreadId);
+    if (threadToUpdate && threadToUpdate.unread > 0) {
+      try {
+        update(ref(database, `users/${user.uid}/chats/${activeThreadId}`), {
+          unread: 0
+        });
+      } catch (err) {}
+    }
 
     if (messages.length === 0) return;
 
@@ -507,21 +583,22 @@ function ChatPageContent() {
           unreadCount = (snapshot.val() || 0) + 1;
         }
 
-        await set(ref(database, `users/${uid}/chats/${conversationId}`), {
-          productId: activeThread.productId,
-          productTitle: activeThread.productTitle,
-          otherUserId: otherUid,
-          otherUserName: otherName,
-          lastMessage: messageText,
+        await update(ref(database, `users/${uid}/chats/${conversationId}`), {
+          productId: activeThread.productId || "",
+          productTitle: activeThread.productTitle || "",
+          otherUserId: otherUid || "",
+          otherUserName: otherName || "User",
+          lastMessage: messageText || "",
           timestamp: serverTimestamp(),
           unread: unreadCount,
+          deleted: false,
         });
       } catch (dbErr) {
         console.warn(`Could not update chats list for user: ${uid}. Verify Firebase Realtime Database Security Rules if PERMISSION_DENIED occurs. Error:`, dbErr);
       }
     };
-    await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName, true);
-    await updateConv(activeThread.otherUserId, user.uid, user.displayName || "User", false);
+    await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName || profiles[activeThread.otherUserId]?.name || "User", true);
+    await updateConv(activeThread.otherUserId, user.uid, dbUser?.name || user.displayName || "User", false);
   }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -572,21 +649,22 @@ function ChatPageContent() {
               unreadCount = (snapshot.val() || 0) + 1;
             }
 
-            await set(ref(database, `users/${uid}/chats/${conversationId}`), {
-              productId: activeThread.productId,
-              productTitle: activeThread.productTitle,
-              otherUserId: otherUid,
-              otherUserName: otherName,
+            await update(ref(database, `users/${uid}/chats/${conversationId}`), {
+              productId: activeThread.productId || "",
+              productTitle: activeThread.productTitle || "",
+              otherUserId: otherUid || "",
+              otherUserName: otherName || "User",
               lastMessage: "📷 Image",
               timestamp: serverTimestamp(),
               unread: unreadCount,
+              deleted: false,
             });
           } catch (dbErr) {
             console.warn(`Could not update chats list for user: ${uid}. Verify Firebase Realtime Database Security Rules if PERMISSION_DENIED occurs. Error:`, dbErr);
           }
         };
-        await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName, true);
-        await updateConv(activeThread.otherUserId, user.uid, user.displayName || "User", false);
+        await updateConv(user.uid, activeThread.otherUserId, activeThread.otherUserName || profiles[activeThread.otherUserId]?.name || "User", true);
+        await updateConv(activeThread.otherUserId, user.uid, dbUser?.name || user.displayName || "User", false);
       }
     } catch (error) {
       console.error("Upload failed:", error);
@@ -699,7 +777,7 @@ function ChatPageContent() {
           </label>
 
           <div className="flex-1 overflow-y-auto space-y-1 px-2 pb-2">
-            {threads.length === 0 ? (
+            {threads.filter(t => !t.deleted).length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-center py-12 px-4">
                 <MessageCircle size={36} className="text-ink-tertiary" />
                 <div>
@@ -724,16 +802,16 @@ function ChatPageContent() {
                     {profiles[thread.otherUserId]?.avatar ? (
                       <img
                         src={profiles[thread.otherUserId].avatar}
-                        alt={`${thread.otherUserName}'s avatar`}
+                        alt={`${profiles[thread.otherUserId]?.name || thread.otherUserName}'s avatar`}
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      thread.otherUserName[0]?.toUpperCase()
+                      (profiles[thread.otherUserId]?.name?.[0]?.toUpperCase() ?? thread.otherUserName?.[0]?.toUpperCase() ?? "?")
                     )}
                     <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-orange-500" />
                   </div>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-bold text-ink text-sm">{thread.productTitle}</span>
+                    <span className="block truncate font-bold text-ink text-sm">{profiles[thread.otherUserId]?.name || thread.productTitle}</span>
                     <span className="block truncate text-xs text-ink-secondary">{thread.lastMessage}</span>
                   </span>
                   {thread.unread > 0 && (
@@ -761,21 +839,21 @@ function ChatPageContent() {
                     <ArrowLeft size={19} />
                   </button>
                   <div className="h-10 w-10 min-w-0">
-                    {sellerInfo?.avatar ? (
-                      <img
-                        src={sellerInfo.avatar}
-                        alt={`${activeThread?.otherUserName}'s avatar`}
-                        className="h-10 w-10 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black text-lg shrink-0">
-                        {activeThread.otherUserName[0]?.toUpperCase()}
-                      </div>
-                    )}
+                        {sellerInfo?.avatar ? (
+                          <img
+                            src={sellerInfo.avatar}
+                            alt={`${profiles[activeThread.otherUserId]?.name || activeThread?.otherUserName}'s avatar`}
+                            className="h-10 w-10 rounded-xl object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center text-white font-black text-lg shrink-0">
+                            {((profiles[activeThread.otherUserId]?.name?.[0]?.toUpperCase()) ?? (activeThread.otherUserName?.[0]?.toUpperCase()) ?? "?")}
+                          </div>
+                        )}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <h2 className="truncate font-bold text-ink text-sm sm:text-base leading-snug">{activeThread.otherUserName}</h2>
+                      <h2 className="truncate font-bold text-ink text-sm sm:text-base leading-snug">{profiles[activeThread.otherUserId]?.name || activeThread.otherUserName}</h2>
                       <span className="flex items-center gap-0.5 rounded bg-orange-50 px-1 py-0.5 text-[10px] font-bold text-orange-500 dark:bg-orange-500/10">
                         <ShieldCheck size={10} className="shrink-0" /> Verified
                       </span>
@@ -806,9 +884,40 @@ function ChatPageContent() {
                   >
                     <Phone size={18} />
                   </button>
-                  <button className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-surface-secondary transition-smooth text-ink-secondary" aria-label="More">
-                    <MoreVertical size={18} />
-                  </button>
+                  <div className="relative" ref={dropdownRef}>
+                    <button 
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-surface-secondary transition-smooth text-ink-secondary" 
+                      aria-label="More"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {showDropdown && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 top-11 z-50 w-40 rounded-xl bg-white p-1.5 shadow-lg border border-border/10 dark:bg-slate-800"
+                        >
+                          <button
+                            onClick={handleClearChat}
+                            className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-ink hover:bg-orange-50 hover:text-orange-600 transition-smooth dark:hover:bg-orange-500/10"
+                          >
+                            Clear Chat
+                          </button>
+                          <button
+                            onClick={handleDeleteChat}
+                            className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-500 hover:bg-red-50 transition-smooth dark:hover:bg-red-500/10"
+                          >
+                            Delete Chat
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </header>
 
@@ -829,7 +938,12 @@ function ChatPageContent() {
                     Conversation started
                   </span>
                 </div>
-                {messages.map((msg) => {
+                {visibleMessages.length === 0 && (
+                  <div className="flex flex-1 items-center justify-center">
+                    <p className="text-sm font-medium text-ink-tertiary">No messages here yet.</p>
+                  </div>
+                )}
+                {visibleMessages.map((msg) => {
                   const mine = msg.senderId === user.uid;
                   const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
                   return (
