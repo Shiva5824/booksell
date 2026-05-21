@@ -206,6 +206,18 @@ export async function getAdminStats() {
   }
 }
 
+export async function resetAdminTraffic() {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/admin/traffic/reset`, {}, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error resetting traffic stats:", error);
+    throw error;
+  }
+}
+
 export async function getAdminUsers() {
   try {
     const response = await axios.get(`${API_BASE_URL}/admin/users`, {
