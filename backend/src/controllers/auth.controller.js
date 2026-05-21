@@ -10,19 +10,30 @@ export async function login(req, res, next) {
 
     const updateData = { lastLogin: new Date() };
     if (payload.name) updateData.name = payload.name;
-    if (payload.avatar) updateData.avatar = payload.avatar;
-    if (payload.college) updateData.college = payload.college;
+    else if (req.firebaseUser.displayName) updateData.name = req.firebaseUser.displayName;
+    else updateData.name = "User";
+
+    const setOnInsertData = {
+      firebaseUid,
+      email: req.firebaseUser.email || ""
+    };
+
+    if (payload.avatar) {
+      updateData.avatar = payload.avatar;
+    } else {
+      setOnInsertData.avatar = "";
+    }
+
+    if (payload.college) {
+      updateData.college = payload.college;
+    } else {
+      setOnInsertData.college = "";
+    }
 
     const user = await User.findOneAndUpdate(
       { firebaseUid },
       {
-        $setOnInsert: {
-          firebaseUid,
-          email: req.firebaseUser.email || "",
-          name: payload.name || req.firebaseUser.displayName || "User",
-          avatar: payload.avatar || "",
-          college: payload.college || ""
-        },
+        $setOnInsert: setOnInsertData,
         $set: updateData
       },
       { upsert: true, new: true }

@@ -36,25 +36,15 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      getCurrentUser()
-        .then((bUser) => {
-          if (bUser) {
-            setBackendUser(bUser);
-            getUserProducts(bUser._id).then((data) => {
-              setProducts(data);
-              setProductsLoading(false);
-            });
-          }
-        })
-        .catch((err) => {
-          // If the account is disabled, AuthProvider will render the disabled UI.
-          // Suppress the error to avoid unhandled promise rejection.
-          if (err?.response?.status === 403) {
-            // No action needed; UI will update via AuthProvider state.
-          } else {
-            console.error('Error fetching current user:', err);
-          }
-        });
+      getCurrentUser().then((bUser) => {
+        if (bUser) {
+          setBackendUser(bUser);
+          getUserProducts(bUser._id).then((data) => {
+            setProducts(data);
+            setProductsLoading(false);
+          });
+        }
+      });
     }
   }, [user]);
 

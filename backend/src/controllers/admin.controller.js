@@ -188,16 +188,22 @@ export async function deleteUserAccount(req, res, next) {
     }
 
     // 1. Delete user from Firebase Auth
-    try {
-      if (firebaseAuth) {
+    if (firebaseAuth) {
+      try {
         await firebaseAuth.deleteUser(user.firebaseUid);
         console.log(`Successfully deleted user ${user.email} from Firebase Auth.`);
-      } else {
-        console.warn("Firebase Auth Admin SDK is not initialized; skipping Firebase deletion.");
+      } catch (firebaseError) {
+        if (firebaseError.code === "auth/user-not-found") {
+          console.log(`User ${user.email} was not found in Firebase Auth; proceeding with MongoDB cleanup.`);
+        } else {
+          console.error(`Firebase Auth deletion failed for UID ${user.firebaseUid}:`, firebaseError);
+          return res.status(500).json({
+            message: `Failed to delete user credentials from Firebase: ${firebaseError.message || firebaseError}`
+          });
+        }
       }
-    } catch (firebaseError) {
-      // If the user is already gone from Firebase, log and still clean up MongoDB
-      console.error(`Firebase Auth deletion failed for UID ${user.firebaseUid}:`, firebaseError.message);
+    } else {
+      console.warn("Firebase Auth Admin SDK is not initialized; skipping Firebase deletion.");
     }
 
     // 2. Delete the user's products/listings

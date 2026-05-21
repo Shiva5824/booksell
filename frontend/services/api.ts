@@ -176,10 +176,6 @@ export async function syncAuth(data: any = {}) {
     });
     return response.data.data;
   } catch (error) {
-    // Propagate 403 (account disabled) to allow UI to handle it explicitly
-    if (axios.isAxiosError(error) && error.response?.status === 403) {
-      throw error;
-    }
     console.error("Error syncing auth:", error);
     return null;
   }
@@ -192,10 +188,6 @@ export async function getCurrentUser() {
     });
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 403) {
-      // Re‑throw to let caller handle disabled account UI
-      throw error;
-    }
     console.error("Error fetching current user:", error);
     return null;
   }
@@ -210,18 +202,6 @@ export async function getAdminStats() {
     return response.data.data;
   } catch (error) {
     console.error("Error fetching admin stats:", error);
-    throw error;
-  }
-}
-
-export async function resetAdminTraffic() {
-  try {
-    const response = await axios.post(`${API_BASE_URL}/admin/traffic/reset`, {}, {
-      headers: getAuthHeader(),
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error resetting admin traffic:", error);
     throw error;
   }
 }

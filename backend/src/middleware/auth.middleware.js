@@ -28,22 +28,8 @@ export async function requireAuth(req, res, next) {
     const user = await User.findOne({ firebaseUid: decoded.uid });
     console.log("User lookup for Firebase UID", decoded.uid, "found:", !!user);
 
-    const isLoginRoute = req.originalUrl.split("?")[0].replace(/\/$/, "") === "/api/auth/login";
-
-    if (!user && !isLoginRoute) {
-      console.warn(`Blocking request to protected route: ${req.originalUrl} - User not found in database.`);
-      return res.status(401).json({
-        code: "AUTH_USER_NOT_FOUND",
-        message: "Your account does not exist in the database. Please sign up to register."
-      });
-    }
-
     if (user && user.isActive === false) {
-      console.warn(`Blocking request to protected route: ${req.originalUrl} - User account is disabled.`);
-      return res.status(403).json({
-        code: "AUTH_USER_DISABLED",
-        message: "Your account has been disabled by an administrator. Please contact support to get it enabled again."
-      });
+      return res.status(403).json({ message: "Your account has been disabled by an administrator." });
     }
 
     req.firebaseUser = decoded;
