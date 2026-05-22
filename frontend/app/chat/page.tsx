@@ -97,7 +97,7 @@ function ChatPageContent() {
   const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
   const [text, setText] = useState("");
   const [initiatingProduct, setInitiatingProduct] = useState<Product | null>(null);
-  const [profiles, setProfiles] = useState<Record<string, {avatar?: string; phone?: string; name?: string}>>({});
+  const [profiles, setProfiles] = useState<Record<string, {avatar?: string; phone?: string; name?: string; isDeleted?: boolean}>>({});
   const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
