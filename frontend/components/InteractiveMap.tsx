@@ -15,9 +15,8 @@ interface InteractiveMapProps {
 }
 
 declare global {
-  namespace L {
-    const map: any;
-    const marker: any;
+  interface Window {
+    L: any;
   }
 }
 
