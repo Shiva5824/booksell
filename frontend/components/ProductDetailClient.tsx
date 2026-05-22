@@ -316,6 +316,98 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
             )}
 
+            {/* Mobile-only Header: Title, Price, Specs & Actions */}
+            <div className="block lg:hidden bg-white dark:bg-white/5 rounded-[32px] border border-border/10 p-5 sm:p-6 shadow-soft space-y-6">
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3.5 py-1.5 text-xs font-black text-orange-500 uppercase tracking-wider dark:bg-orange-500/15">
+                  <CategoryIcon size={14} />
+                  {product.category}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5f2ee] px-3.5 py-1.5 text-xs font-black text-ink-secondary uppercase tracking-wider dark:bg-white/10">
+                  <Clock3 size={14} />
+                  {postedDate}
+                </span>
+              </div>
+
+              {/* Title & Price */}
+              <div className="space-y-3">
+                <h1 className="text-2xl font-black leading-tight text-ink">
+                  {product.title}
+                </h1>
+                <div className="inline-flex items-center gap-1.5 text-3xl font-black text-orange-500">
+                  <BadgeIndianRupee size={32} className="stroke-[2.5]" />
+                  <span>{product.price.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              {/* Fast Spec Pills */}
+              <div className="grid grid-cols-3 gap-2.5 pt-2">
+                <div className="rounded-2xl bg-[#f5f2ee] dark:bg-white/5 p-3 text-center border border-border/5">
+                  <p className="text-[10px] font-bold text-ink-tertiary uppercase tracking-wider mb-1">Condition</p>
+                  <p className="text-xs sm:text-sm font-black text-ink capitalize">{product.condition}</p>
+                </div>
+                <div className="rounded-2xl bg-[#f5f2ee] dark:bg-white/5 p-3 text-center border border-border/5">
+                  <p className="text-[10px] font-bold text-ink-tertiary uppercase tracking-wider mb-1">Section</p>
+                  <p className="text-xs sm:text-sm font-black text-ink uppercase">{product.category}</p>
+                </div>
+                <div className="rounded-2xl bg-[#f5f2ee] dark:bg-white/5 p-3 text-center border border-border/5">
+                  <p className="text-[10px] font-bold text-ink-tertiary uppercase tracking-wider mb-1">Colleges</p>
+                  <p className="text-xs sm:text-sm font-black text-ink truncate max-w-full" title={product.college}>{product.college}</p>
+                </div>
+              </div>
+
+              {/* Seller Profile mini card */}
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#f5f2ee] dark:bg-white/5 border border-border/5">
+                <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-border/10 shadow-inner shrink-0 bg-surface-tertiary">
+                  <Image
+                    src={seller.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=160&q=80"}
+                    alt={seller.name || "Seller"}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1">
+                    <p className="font-bold text-ink text-sm truncate">
+                      {seller.name || "Verified Campus Seller"}
+                    </p>
+                    <CheckCircle2 size={14} className="text-orange-500 shrink-0" />
+                  </div>
+                  <p className="text-[10px] text-ink-tertiary font-bold truncate">
+                    {seller.college || product.college}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="grid gap-3 pt-2">
+                <Link
+                  href={`/chat?product=${product._id}`}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 font-bold text-white shadow-soft transition-all duration-300 hover:bg-slate-800 active:scale-[0.98]"
+                >
+                  <MessageCircle size={20} className="stroke-[2.5]" />
+                  Message on Chat
+                </Link>
+
+                {whatsappUrl ? (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 font-bold text-white shadow-soft hover:shadow-glow-primary/10 transition-all duration-300 hover:bg-[#20ba59] active:scale-[0.98]"
+                  >
+                    <Phone size={20} className="fill-white stroke-none" />
+                    Chat on WhatsApp
+                  </a>
+                ) : (
+                  <div className="w-full py-3.5 text-center text-xs font-bold text-ink-tertiary bg-surface-tertiary rounded-xl border border-dashed border-border/10">
+                    Seller WhatsApp not available
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Detailed Description */}
             <div className="rounded-[32px] border border-border/10 bg-surface-bg p-6 sm:p-8 shadow-soft">
               <h2 className="text-xl font-black text-ink mb-4 sm:text-2xl">Item Description</h2>
@@ -352,7 +444,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           <div className="lg:col-span-5 space-y-6">
             
             {/* Main Info Card */}
-            <div className="rounded-[32px] border border-border/10 bg-surface-bg p-6 sm:p-8 shadow-soft space-y-6">
+            <div className="hidden lg:block rounded-[32px] border border-border/10 bg-surface-bg p-6 sm:p-8 shadow-soft space-y-6">
               
               {/* Top Row Badges */}
               <div className="flex flex-wrap gap-2">
@@ -488,7 +580,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             )}
 
             {/* Seller Contact Card */}
-            <div className="rounded-[32px] border border-border/10 bg-surface-bg p-6 sm:p-8 shadow-soft space-y-6">
+            <div className="hidden lg:block rounded-[32px] border border-border/10 bg-surface-bg p-6 sm:p-8 shadow-soft space-y-6">
               
               {/* Seller profile information */}
               <div className="flex items-center gap-4">
