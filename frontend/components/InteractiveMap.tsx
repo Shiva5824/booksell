@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 interface MapLocation {
   latitude: number;
   longitude: number;
-  address?: string;
+  address: string;
 }
 
 interface InteractiveMapProps {
