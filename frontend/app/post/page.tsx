@@ -35,7 +35,8 @@ type ListingForm = {
   title: string;
   price: string;
   description: string;
-  category: "ipe" | "eapcet" | "jee" | "neet";
+  // category is freeform on the client; we'll map to backend allowed categories before sending
+  category: string;
   condition: "new" | "good" | "used";
   college: string;
   location?: {
@@ -63,7 +64,7 @@ export default function PostListingPage() {
     title: "",
     price: "",
     description: "",
-    category: "ipe",
+    category: "book",
     condition: "good",
     college: "",
     location: undefined,
@@ -151,8 +152,13 @@ export default function PostListingPage() {
       const imageUrls = await uploadImages(files);
 
       // 2. Create product
+      // Map client category to backend allowed categories if necessary
+      const allowedCategories = ["ipe", "eapcet", "jee", "neet"];
+      const backendCategory = allowedCategories.includes(form.category) ? form.category : "ipe";
+
       const productData = {
         ...form,
+        category: backendCategory,
         price: priceNum,
         images: imageUrls,
       };
