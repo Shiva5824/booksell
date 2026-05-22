@@ -14,14 +14,20 @@ import ProductCard from "@/components/ProductCard";
 import DeleteConfirmModal from "@/components/DeleteConfirmModal";
 import EditListingModal from "@/components/EditListingModal";
 import EditProfileModal from "@/components/EditProfileModal";
-import { deleteProduct, getProducts, getUserProducts, markProductAsSold, getCurrentUser } from "@/services/api";
+import { deleteProduct, getFavorites, getUserProducts, markProductAsSold, getCurrentUser, toggleFavorite } from "@/services/api";
 import type { Product, User as BackendUser } from "@/lib/types";
+
+type ProfileTab = "listings" | "favorites";
 
 export default function ProfilePage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<ProfileTab>("listings");
+  const [favorites, setFavorites] = useState<Product[]>([]);
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login?redirect=/profile");
@@ -47,6 +53,42 @@ export default function ProfilePage() {
       });
     }
   }, [user]);
+
+  // Load favorites whenever user is available
+  useEffect(() => {
+    if (!user) return;
+    setFavoritesLoading(true);
+    getFavorites().then((favs) => {
+      setFavorites(favs);
+      setFavoritedIds(new Set(favs.map((f) => f._id)));
+      setFavoritesLoading(false);
+    });
+  }, [user]);
+
+  async function handleToggleFavorite(productId: string) {
+    const nowFaved = !favoritedIds.has(productId);
+    setFavoritedIds((prev) => {
+      const next = new Set(prev);
+      if (nowFaved) next.add(productId); else next.delete(productId);
+      return next;
+    });
+    try {
+      await toggleFavorite(productId);
+      // Refresh favorites list if we're on favorites tab
+      if (activeTab === "favorites") {
+        const updated = await getFavorites();
+        setFavorites(updated);
+        setFavoritedIds(new Set(updated.map((f) => f._id)));
+      }
+    } catch {
+      // revert on error
+      setFavoritedIds((prev) => {
+        const next = new Set(prev);
+        if (nowFaved) next.delete(productId); else next.add(productId);
+        return next;
+      });
+    }
+  }
 
   const handleDeleteClick = (product: Product) => {
     setSelectedProduct(product);
@@ -185,9 +227,21 @@ export default function ProfilePage() {
               { label: "Total Items", value: products.length, icon: PackageCheck, bg: "bg-blue-500/5", text: "text-blue-500" },
               { label: "Active Now", value: activeCount, icon: TrendingUp, bg: "bg-emerald-500/5", text: "text-emerald-500" },
               { label: "Items Sold", value: soldCount, icon: CheckCircle2, bg: "bg-purple-500/5", text: "text-purple-500" },
-              { label: "Favorites", value: 0, icon: Heart, bg: "bg-red-500/5", text: "text-red-500" },
+              { label: "Favourites", value: favorites.length, icon: Heart, bg: "bg-red-500/5", text: "text-red-500" },
             ].map(({ label, value, icon: Icon, bg, text }) => (
-              <div key={label} className={`rounded-3xl ${bg} p-5 border border-border/5 group hover:border-border/10 transition-all`}>
+              <button
+                key={label}
+                onClick={() => {
+                  if (label === "Favourites") setActiveTab("favorites");
+                  else setActiveTab("listings");
+                }}
+                className={`rounded-3xl ${bg} p-5 border transition-all text-left ${
+                  (label === "Favourites" && activeTab === "favorites") ||
+                  (label !== "Favourites" && activeTab === "listings")
+                    ? "border-border/20 scale-[0.98]"
+                    : "border-border/5 hover:border-border/10"
+                }`}
+              >
                 <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-ink-tertiary mb-3">
                   <div className={`p-1.5 rounded-lg ${bg} ${text}`}>
                     <Icon size={14} />
@@ -195,76 +249,160 @@ export default function ProfilePage() {
                   {label}
                 </div>
                 <p className="text-3xl font-black text-ink">{value}</p>
-              </div>
+              </button>
             ))}
           </div>
         </motion.section>
 
-        {/* Seller Dashboard */}
-        <section>
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div className="text-center sm:text-left">
-              <h2 className="text-2xl sm:text-3xl font-black text-ink">Your Listings</h2>
-              <p className="text-xs sm:text-sm text-ink-secondary mt-1 sm:mt-2">Manage your listings and mark items sold.</p>
-            </div>
-            <Link href="/chat" className="btn-primary justify-center sm:justify-start py-3 text-sm">
-              <MessageCircle size={18} />
-              View Messages
-            </Link>
-          </div>
+        {/* Tab Switcher */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab("listings")}
+            className={`rounded-full px-5 py-2 text-sm font-black transition-all ${
+              activeTab === "listings"
+                ? "bg-slate-900 text-white shadow-soft"
+                : "bg-surface-bg border border-border/10 text-ink-secondary hover:text-ink"
+            }`}
+          >
+            Your Listings
+          </button>
+          <button
+            onClick={() => setActiveTab("favorites")}
+            className={`rounded-full px-5 py-2 text-sm font-black transition-all flex items-center gap-2 ${
+              activeTab === "favorites"
+                ? "bg-orange-500 text-white shadow-soft"
+                : "bg-surface-bg border border-border/10 text-ink-secondary hover:text-ink"
+            }`}
+          >
+            <Heart size={14} className={activeTab === "favorites" ? "fill-white" : ""} />
+            Favourites
+            {favorites.length > 0 && (
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                activeTab === "favorites" ? "bg-white/20 text-white" : "bg-orange-500/10 text-orange-500"
+              }`}>
+                {favorites.length}
+              </span>
+            )}
+          </button>
+        </div>
 
-          {productsLoading ? (
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="rounded-2xl bg-surface-secondary h-48 sm:h-72 animate-pulse" />
-              ))}
-            </div>
-          ) : products.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="grid min-h-[300px] place-items-center rounded-2xl border border-dashed border-border/10 glass p-8 text-center"
-            >
-              <div className="space-y-4">
-                <PackageOpen size={48} className="text-ink-tertiary mx-auto" />
-                <h3 className="text-xl font-black text-ink">No listings yet</h3>
-                <p className="text-sm text-ink-secondary">Start selling to see your listings here.</p>
-                <Link href="/post" className="btn-primary mx-auto">
-                  <Plus size={18} /> Post Your First Item
-                </Link>
+        {/* Tab: Your Listings */}
+        {activeTab === "listings" && (
+          <section>
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div className="text-center sm:text-left">
+                <h2 className="text-2xl sm:text-3xl font-black text-ink">Your Listings</h2>
+                <p className="text-xs sm:text-sm text-ink-secondary mt-1 sm:mt-2">Manage your listings and mark items sold.</p>
               </div>
-            </motion.div>
-          ) : (
-            <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (
-                <div key={product._id} className="space-y-3">
-                  <ProductCard product={product} />
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <button 
-                      onClick={() => handleMarkAsSold(product._id)}
-                      disabled={product.status === "sold"}
-                      className="col-span-2 sm:col-span-1 rounded-xl bg-primary-light text-primary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-primary hover:text-white disabled:opacity-50"
-                    >
-                      {product.status === "sold" ? "Sold" : "Mark Sold"}
-                    </button>
-                    <button 
-                      onClick={() => handleEditClick(product)}
-                      className="rounded-xl border border-border bg-surface-bg text-ink-secondary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-surface-secondary"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteClick(product)}
-                      className="flex items-center justify-center rounded-xl border border-border bg-surface-bg text-secondary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400" 
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+              <Link href="/chat" className="btn-primary justify-center sm:justify-start py-3 text-sm">
+                <MessageCircle size={18} />
+                View Messages
+              </Link>
             </div>
-          )}
-        </section>
+
+            {productsLoading ? (
+              <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="rounded-2xl bg-surface-secondary h-48 sm:h-72 animate-pulse" />
+                ))}
+              </div>
+            ) : products.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="grid min-h-[300px] place-items-center rounded-2xl border border-dashed border-border/10 glass p-8 text-center"
+              >
+                <div className="space-y-4">
+                  <PackageOpen size={48} className="text-ink-tertiary mx-auto" />
+                  <h3 className="text-xl font-black text-ink">No listings yet</h3>
+                  <p className="text-sm text-ink-secondary">Start selling to see your listings here.</p>
+                  <Link href="/post" className="btn-primary mx-auto">
+                    <Plus size={18} /> Post Your First Item
+                  </Link>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-3">
+                {products.map((product) => (
+                  <div key={product._id} className="space-y-3">
+                    <ProductCard
+                      product={product}
+                      isFavorited={favoritedIds.has(product._id)}
+                      onToggleFavorite={handleToggleFavorite}
+                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <button 
+                        onClick={() => handleMarkAsSold(product._id)}
+                        disabled={product.status === "sold"}
+                        className="col-span-2 sm:col-span-1 rounded-xl bg-primary-light text-primary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-primary hover:text-white disabled:opacity-50"
+                      >
+                        {product.status === "sold" ? "Sold" : "Mark Sold"}
+                      </button>
+                      <button 
+                        onClick={() => handleEditClick(product)}
+                        className="rounded-xl border border-border bg-surface-bg text-ink-secondary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-surface-secondary"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteClick(product)}
+                        className="flex items-center justify-center rounded-xl border border-border bg-surface-bg text-secondary px-2 py-2 text-[10px] sm:text-sm font-bold transition-smooth hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400" 
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Tab: Favourites */}
+        {activeTab === "favorites" && (
+          <section>
+            <div className="mb-6">
+              <h2 className="text-2xl sm:text-3xl font-black text-ink">Saved Favourites</h2>
+              <p className="text-xs sm:text-sm text-ink-secondary mt-1 sm:mt-2">Listings you've saved for later.</p>
+            </div>
+
+            {favoritesLoading ? (
+              <div className="grid gap-3 grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="rounded-2xl bg-surface-secondary h-48 sm:h-72 animate-pulse" />
+                ))}
+              </div>
+            ) : favorites.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="grid min-h-[300px] place-items-center rounded-2xl border border-dashed border-border/10 glass p-8 text-center"
+              >
+                <div className="space-y-4">
+                  <Heart size={48} className="text-ink-tertiary mx-auto" />
+                  <h3 className="text-xl font-black text-ink">No favourites yet</h3>
+                  <p className="text-sm text-ink-secondary">
+                    Tap the heart on any listing to save it here.
+                  </p>
+                  <Link href="/" className="btn-primary mx-auto">
+                    <Plus size={18} /> Browse Listings
+                  </Link>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-3">
+                {favorites.map((product) => (
+                  <ProductCard
+                    key={product._id}
+                    product={product}
+                    isFavorited={true}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
 
       <DeleteConfirmModal 

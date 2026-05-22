@@ -154,6 +154,26 @@ export async function getUserProducts(userId: string) {
   }
 }
 
+export async function toggleFavorite(productId: string): Promise<{ favorited: boolean; favorites: string[] }> {
+  const response = await axios.post(`${API_BASE_URL}/users/favorites/${productId}`, {}, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+}
+
+export async function getFavorites(): Promise<import("@/lib/types").Product[]> {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/users/favorites`, {
+      headers: getAuthHeader(),
+    });
+    return response.data.data || [];
+  } catch (error) {
+    console.error("Error fetching favorites:", error);
+    return [];
+  }
+}
+
+
 // ===== UPLOAD ENDPOINTS =====
 
 export async function uploadImages(files: File[]) {

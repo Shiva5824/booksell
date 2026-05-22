@@ -9,7 +9,8 @@ import {
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import PriceRangeFilter from "@/components/PriceRangeFilter";
-import { getProducts } from "@/services/api";
+import { getProducts, getFavorites, toggleFavorite } from "@/services/api";
+import { useAuth } from "@/components/AuthProvider";
 import type { Product } from "@/lib/types";
 
 function SkeletonCard() {
@@ -30,9 +31,11 @@ function SkeletonCard() {
 }
 
 export default function BrowsePage() {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
 
   const [category, setCategory] = useState("");
   const [condition, setCondition] = useState("");
@@ -54,6 +57,31 @@ export default function BrowsePage() {
       setLoading(false);
     });
   }, [category, condition, sort, minPrice, maxPrice, search]);
+
+  useEffect(() => {
+    if (!user) { setFavoritedIds(new Set()); return; }
+    getFavorites().then((favs) => {
+      setFavoritedIds(new Set(favs.map((f) => f._id)));
+    });
+  }, [user]);
+
+  async function handleToggleFavorite(productId: string) {
+    const nowFaved = !favoritedIds.has(productId);
+    setFavoritedIds((prev) => {
+      const next = new Set(prev);
+      if (nowFaved) next.add(productId); else next.delete(productId);
+      return next;
+    });
+    try {
+      await toggleFavorite(productId);
+    } catch {
+      setFavoritedIds((prev) => {
+        const next = new Set(prev);
+        if (nowFaved) next.delete(productId); else next.add(productId);
+        return next;
+      });
+    }
+  }
 
   const activeFilters = useMemo(() => [
     category && { label: "Category", value: category, type: "category" },
@@ -256,7 +284,12 @@ export default function BrowsePage() {
                 className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
               >
                 {products.map((product) => (
-                  <ProductCard key={product._id} product={product} />
+                  <ProductCard
+                    key={product._id}
+                    product={product}
+                    isFavorited={favoritedIds.has(product._id)}
+                    onToggleFavorite={user ? handleToggleFavorite : undefined}
+                  />
                 ))}
               </motion.div>
             ) : (

@@ -351,3 +351,79 @@ export async function deleteLocation(req, res) {
     });
   }
 }
+
+/**
+ * Toggle a product in/out of the user's favorites
+ */
+export async function toggleFavorite(req, res) {
+  try {
+    const { productId } = req.params;
+
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ success: false, message: "Invalid product ID" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const productObjId = new mongoose.Types.ObjectId(productId);
+    const alreadyFaved = user.favorites.some((id) => id.equals(productObjId));
+
+    if (alreadyFaved) {
+      user.favorites = user.favorites.filter((id) => !id.equals(productObjId));
+    } else {
+      user.favorites.push(productObjId);
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      favorited: !alreadyFaved,
+      favorites: user.favorites,
+    });
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+    res.status(500).json({ success: false, message: "Failed to toggle favorite", error: error.message });
+  }
+}
+
+/**
+ * Get the current user's favorited products (populated)
+ */
+export async function getFavorites(req, res) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const user = await User.findById(req.user._id)
+      .populate({
+        path: "favorites",
+        populate: { path: "sellerId", select: "name email avatar college phone" },
+      });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Filter out any null references (deleted products)
+    const validFavorites = user.favorites.filter(Boolean);
+
+    res.json({
+      success: true,
+      data: validFavorites,
+      count: validFavorites.length,
+    });
+  } catch (error) {
+    console.error("Error fetching favorites:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch favorites", error: error.message });
+  }
+}
+

@@ -11,8 +11,9 @@ import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import SearchBar from "@/components/SearchBar";
 import HeroCarousel from "@/components/HeroCarousel";
-import { getProducts } from "@/services/api";
+import { getProducts, getFavorites, toggleFavorite } from "@/services/api";
 import { getSiteContact } from "@/services/site";
+import { useAuth } from "@/components/AuthProvider";
 import type { Product, ProductFilters } from "@/lib/types";
 
 const staggerContainer: any = {
@@ -59,6 +60,7 @@ function StatSkeleton() {
 }
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [filters, setFilters] = useState<ProductFilters>({ sort: "newest" });
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -67,6 +69,7 @@ export default function HomePage() {
   const [showContact, setShowContact] = useState(false);
   const [contactDetails, setContactDetails] = useState({ supportEmail: "", whatsappNumber: "" });
   const [loadingContact, setLoadingContact] = useState(false);
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
 
   const faqs = [
     {
@@ -98,6 +101,33 @@ export default function HomePage() {
       setLoadingProducts(false);
     });
   }, [filters]);
+
+  // Load user's favorites on mount / login change
+  useEffect(() => {
+    if (!user) { setFavoritedIds(new Set()); return; }
+    getFavorites().then((favs) => {
+      setFavoritedIds(new Set(favs.map((f) => f._id)));
+    });
+  }, [user]);
+
+  async function handleToggleFavorite(productId: string) {
+    const nowFaved = !favoritedIds.has(productId);
+    setFavoritedIds((prev) => {
+      const next = new Set(prev);
+      if (nowFaved) next.add(productId); else next.delete(productId);
+      return next;
+    });
+    try {
+      await toggleFavorite(productId);
+    } catch {
+      // revert on error
+      setFavoritedIds((prev) => {
+        const next = new Set(prev);
+        if (nowFaved) next.delete(productId); else next.add(productId);
+        return next;
+      });
+    }
+  }
 
   const visibleProducts = useMemo(() => products.slice(0, visibleCount), [products, visibleCount]);
   const ipeCount = useMemo(() => products.filter((p) => p.category === "ipe").length, [products]);
@@ -259,7 +289,12 @@ export default function HomePage() {
               className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 xl:gap-7"
             >
               {visibleProducts.map((product) => (
-                <ProductCard key={product._id} product={product} />
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  isFavorited={favoritedIds.has(product._id)}
+                  onToggleFavorite={user ? handleToggleFavorite : undefined}
+                />
               ))}
             </motion.div>
 

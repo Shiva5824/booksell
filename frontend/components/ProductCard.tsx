@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BadgeIndianRupee, BookOpen, Clock3, Cpu, FlaskConical,
@@ -10,7 +11,14 @@ import {
 } from "lucide-react";
 import type { Product, User } from "@/lib/types";
 
-export default function ProductCard({ product }: { product: Product }) {
+interface ProductCardProps {
+  product: Product;
+  isFavorited?: boolean;
+  onToggleFavorite?: (productId: string) => void;
+}
+
+export default function ProductCard({ product, isFavorited = false, onToggleFavorite }: ProductCardProps) {
+  const router = useRouter();
   const sold = product.status === "sold";
   const Icon = (() => {
     switch (product.category) {
@@ -30,6 +38,16 @@ export default function ProductCard({ product }: { product: Product }) {
     minute: "numeric",
     hour12: true 
   }).format(dateObj).replace(" at ", ", ");
+
+  function handleHeartClick(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onToggleFavorite) {
+      onToggleFavorite(product._id);
+    } else {
+      router.push("/login");
+    }
+  }
 
   return (
     <motion.article
@@ -73,10 +91,20 @@ export default function ProductCard({ product }: { product: Product }) {
           whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           type="button"
-          aria-label="Save listing"
-          className="absolute right-3 bottom-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/92 text-ink shadow-soft transition-colors hover:text-orange-500"
+          onClick={handleHeartClick}
+          aria-label={isFavorited ? "Remove from favourites" : "Add to favourites"}
+          className={`absolute right-3 bottom-3 z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-soft transition-colors ${
+            isFavorited
+              ? "bg-orange-500 text-white"
+              : "bg-white/90 text-slate-800 hover:text-orange-500 dark:bg-slate-900/90 dark:text-slate-200 dark:hover:text-orange-500"
+          }`}
         >
-          <Heart size={19} className="transition-all duration-300 group-hover:fill-orange-500/15" />
+          <Heart
+            size={19}
+            className={`transition-all duration-300 ${
+              isFavorited ? "fill-white text-white" : "group-hover:fill-orange-500/15"
+            }`}
+          />
         </motion.button>
 
         {sold && (

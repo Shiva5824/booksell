@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema(
         createdAt: { type: Date, default: Date.now }
       }
     ],
+    favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     role: { type: String, enum: ["user", "admin"], default: "user" },
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date, default: Date.now }

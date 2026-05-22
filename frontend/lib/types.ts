@@ -21,6 +21,7 @@ export interface User {
   avatar?: string;
   phone?: string;
   locations?: Location[];
+  favorites?: string[];
 }
 
 export interface Product {

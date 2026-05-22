@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getUser, getUserProducts, updateUserProfile, checkPhoneExists, addLocation, updateLocation, deleteLocation } from "../controllers/user.controller.js";
+import { getUser, getUserProducts, updateUserProfile, checkPhoneExists, addLocation, updateLocation, deleteLocation, toggleFavorite, getFavorites } from "../controllers/user.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
 import { updateUserProfileSchema } from "../validators/user.schema.js";
@@ -9,6 +9,10 @@ const router = Router();
 // More specific routes first
 router.get("/check/phone", requireAuth, checkPhoneExists);
 router.put("/profile", requireAuth, validate(updateUserProfileSchema), updateUserProfile);
+
+// Favorites routes
+router.get("/favorites", requireAuth, getFavorites);
+router.post("/favorites/:productId", requireAuth, toggleFavorite);
 
 // Location routes
 router.post("/location", requireAuth, addLocation);
@@ -20,3 +24,4 @@ router.get("/:id", getUser);
 router.get("/:id/products", getUserProducts);
 
 export default router;
+
