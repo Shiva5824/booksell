@@ -52,7 +52,7 @@ export default function LocationPicker({
   const [addingNew, setAddingNew] = useState(false);
   const [newLocationLabel, setNewLocationLabel] = useState("My Location");
   const [isSaving, setIsSaving] = useState(false);
-  const fetchTimeoutRef = useRef<NodeJS.Timeout>();
+  const fetchTimeoutRef = useRef<NodeJS.Timeout>(undefined);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Fetch address suggestions from Nominatim
