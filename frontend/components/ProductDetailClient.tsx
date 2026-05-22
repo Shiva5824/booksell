@@ -23,11 +23,29 @@ import {
   FlaskConical,
   Navigation,
   Check,
-  Compass
+  Compass,
+  ChevronLeft,
+  ChevronRight,
+  X
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { toggleFavorite as apiToggleFavorite, getFavorites } from "@/services/api";
 import type { Product, User } from "@/lib/types";
+
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? "100%" : "-100%",
+    opacity: 0
+  }),
+  center: {
+    x: 0,
+    opacity: 1
+  },
+  exit: (direction: number) => ({
+    x: direction < 0 ? "100%" : "-100%",
+    opacity: 0
+  })
+};
 
 interface ProductDetailClientProps {
   product: Product;
@@ -40,6 +58,20 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const [isSaved, setIsSaved] = useState(false);
   const [togglingFav, setTogglingFav] = useState(false);
   const [copied, setCopied] = useState(false);
+  
+  // Fullscreen gallery state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState(0);
+  const [lightboxDirection, setLightboxDirection] = useState(0);
+
+  const paginateLightbox = (newDirection: number) => {
+    setLightboxDirection(newDirection);
+    if (newDirection > 0) {
+      setLightboxIdx((prev) => (prev < product.images.length - 1 ? prev + 1 : 0));
+    } else {
+      setLightboxIdx((prev) => (prev > 0 ? prev - 1 : product.images.length - 1));
+    }
+  };
   
   // Geolocation and distance state
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; label: string } | null>(null);
@@ -91,6 +123,34 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       setLocationSource("saved");
     }
   }, [dbUser]);
+
+  // Keyboard navigation for fullscreen lightbox modal
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setLightboxOpen(false);
+      } else if (e.key === "ArrowLeft") {
+        paginateLightbox(-1);
+      } else if (e.key === "ArrowRight") {
+        paginateLightbox(1);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxOpen, product.images.length]);
+
+  // Lock body scroll when fullscreen gallery is open
+  useEffect(() => {
+    if (lightboxOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [lightboxOpen]);
 
   // Handle favorite toggle
   async function handleFavoriteToggle() {
@@ -201,7 +261,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   }).format(new Date(product.createdAt));
 
   return (
-    <main className="bg-gradient-to-b from-surface-secondary via-surface-bg to-surface-secondary min-h-screen pb-nav">
+    <>
+      <main className="bg-gradient-to-b from-surface-secondary via-surface-bg to-surface-secondary min-h-screen pb-nav">
       <div className="mx-auto max-w-7xl px-4 py-8">
         
         {/* Back Link */}
@@ -222,19 +283,43 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           <div className="lg:col-span-7 space-y-6">
             
             {/* Gallery Wrapper */}
-            <div className="relative overflow-hidden rounded-[32px] border border-border/10 bg-surface-tertiary aspect-[4/3] shadow-soft group">
+            <div className="relative overflow-hidden rounded-[32px] border border-border/10 bg-slate-950/5 aspect-[4/3] shadow-soft group dark:bg-slate-900/10">
               
               {/* Main Active Image with transitions */}
-              <div className="relative w-full h-full">
+              <div 
+                className="relative w-full h-full cursor-pointer overflow-hidden"
+                onClick={() => {
+                  setLightboxIdx(activeImageIdx);
+                  setLightboxOpen(true);
+                }}
+              >
                 {product.images && product.images.length > 0 ? (
-                  <Image
-                    src={product.images[activeImageIdx]}
-                    alt={product.title}
-                    fill
-                    priority
-                    className="object-cover transition-transform duration-700 hover:scale-105"
-                    sizes="(max-width: 1024px) 100vw, 55vw"
-                  />
+                  <>
+                    {/* Blurred background image to fill sides */}
+                    <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+                      <Image
+                        src={product.images[activeImageIdx]}
+                        alt=""
+                        fill
+                        className="object-cover blur-3xl scale-125 opacity-85"
+                        sizes="20vw"
+                      />
+                      <div className="absolute inset-0 bg-black/[0.03] dark:bg-black/25 z-10 pointer-events-none" />
+                    </div>
+                    
+                    {/* Ambient shadow gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent pointer-events-none z-10" />
+
+                    {/* Main sharp image focused in front */}
+                    <Image
+                      src={product.images[activeImageIdx]}
+                      alt={product.title}
+                      fill
+                      priority
+                      className="z-20 object-contain transition-all duration-500 hover:scale-[1.02]"
+                      sizes="(max-width: 1024px) 100vw, 55vw"
+                    />
+                  </>
                 ) : (
                   <div className="flex items-center justify-center h-full text-ink-tertiary">
                     <ImageIcon size={64} />
@@ -243,7 +328,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
 
               {/* Status and Action overlays */}
-              <div className="absolute top-4 left-4 z-10 flex gap-2">
+              <div className="absolute top-4 left-4 z-30 flex gap-2">
                 <span
                   className={`rounded-full px-4 py-2 text-xs font-black uppercase tracking-wider text-white shadow-soft ${
                     product.status === "sold" ? "bg-slate-900" : "bg-orange-500"
@@ -257,7 +342,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
 
               {/* Share & Save overlays */}
-              <div className="absolute top-4 right-4 z-10 flex gap-2">
+              <div className="absolute top-4 right-4 z-30 flex gap-2">
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
@@ -285,7 +370,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
               {/* Image index overlay */}
               {product.images && product.images.length > 1 && (
-                <div className="absolute bottom-4 right-4 z-10 rounded-full bg-slate-950/60 px-3.5 py-1.5 text-xs font-black text-white backdrop-blur-md">
+                <div className="absolute bottom-4 right-4 z-30 rounded-full bg-slate-950/60 px-3.5 py-1.5 text-xs font-black text-white backdrop-blur-md">
                   {activeImageIdx + 1} / {product.images.length}
                 </div>
               )}
@@ -651,5 +736,154 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
       </div>
     </main>
+
+    {/* Fullscreen Lightbox Modal */}
+    <AnimatePresence>
+      {lightboxOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-lg flex flex-col justify-between py-6 px-4 touch-none select-none"
+        >
+          {/* Top Bar */}
+          <div className="flex w-full items-center justify-between z-20 px-4 md:px-8">
+            <span className="text-white/80 font-black text-sm bg-white/10 px-4 py-2 rounded-full border border-white/5 backdrop-blur-md">
+              {lightboxIdx + 1} / {product.images.length}
+            </span>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setLightboxOpen(false)}
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 border border-white/5 cursor-pointer"
+              aria-label="Close fullscreen gallery"
+            >
+              <X size={20} />
+            </motion.button>
+          </div>
+
+          {/* Main Stage */}
+          <div className="relative flex-1 w-full flex items-center justify-center my-4 overflow-hidden">
+            {/* Blurred background image to fill sides in fullscreen */}
+            <div className="absolute inset-0 scale-125 blur-3xl opacity-60 pointer-events-none overflow-hidden">
+              <Image
+                src={product.images[lightboxIdx]}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="30vw"
+              />
+              <div className="absolute inset-0 bg-black/20" />
+            </div>
+
+            {/* Foreground main image slider */}
+            <div className="relative w-full h-full max-h-[70vh] flex items-center justify-center z-10 px-4 md:px-16 overflow-hidden">
+              <AnimatePresence initial={false} custom={lightboxDirection}>
+                <motion.div
+                  key={lightboxIdx}
+                  custom={lightboxDirection}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{
+                    x: { type: "spring", stiffness: 300, damping: 30 },
+                    opacity: { duration: 0.2 }
+                  }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={1}
+                  onDragEnd={(e, info) => {
+                    const swipeThreshold = 50;
+                    if (info.offset.x < -swipeThreshold) {
+                      paginateLightbox(1);
+                    } else if (info.offset.x > swipeThreshold) {
+                      paginateLightbox(-1);
+                    }
+                  }}
+                  className="absolute inset-0 flex items-center justify-center px-4 md:px-16 pointer-events-auto"
+                >
+                  <div className="relative w-full h-full max-h-[70vh]">
+                    <Image
+                      src={product.images[lightboxIdx]}
+                      alt={product.title}
+                      fill
+                      priority
+                      className="object-contain select-none pointer-events-none"
+                      sizes="100vw"
+                    />
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Navigation Controls (Arrows) */}
+            {product.images.length > 1 && (
+              <>
+                {/* Left Arrow */}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    paginateLightbox(-1);
+                  }}
+                  className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 border border-white/5 z-20 cursor-pointer shadow-lg"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={28} />
+                </motion.button>
+
+                {/* Right Arrow */}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    paginateLightbox(1);
+                  }}
+                  className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition-all hover:bg-white/20 border border-white/5 z-20 cursor-pointer shadow-lg"
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={28} />
+                </motion.button>
+              </>
+            )}
+          </div>
+
+          {/* Scrolling Thumbnails bottom bar */}
+          {product.images.length > 1 && (
+            <div className="w-full flex justify-center z-20 px-4">
+              <div className="flex gap-3 overflow-x-auto max-w-full py-3 px-4 bg-white/5 border border-white/5 backdrop-blur-md rounded-2xl scrollbar-hide">
+                {product.images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setLightboxDirection(idx > lightboxIdx ? 1 : -1);
+                      setLightboxIdx(idx);
+                    }}
+                    className={`relative aspect-square h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 transition-all cursor-pointer ${
+                      idx === lightboxIdx
+                        ? "border-orange-500 scale-95 shadow-md shadow-orange-500/25"
+                        : "border-transparent opacity-40 hover:opacity-100"
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt=""
+                      fill
+                      className="object-cover pointer-events-none select-none"
+                      sizes="56px"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,25 @@ interface ProductCardProps {
 export default function ProductCard({ product, isFavorited = false, onToggleFavorite }: ProductCardProps) {
   const router = useRouter();
   const sold = product.status === "sold";
+
+  const [currentImageIdx, setCurrentImageIdx] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (!isHovered || !product.images || product.images.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentImageIdx((prev) => (prev + 1) % product.images.length);
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [isHovered, product.images]);
+
+  const handleMouseEnter = () => setIsHovered(true);
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setCurrentImageIdx(0);
+  };
   const Icon = (() => {
     switch (product.category) {
       case "ipe": return BookOpen;
@@ -58,20 +78,48 @@ export default function ProductCard({ product, isFavorited = false, onToggleFavo
       className="group overflow-hidden rounded-[28px] bg-white shadow-soft transition-all duration-500 hover:-translate-y-1 hover:shadow-soft-lg dark:bg-white/10"
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#f5f2ee] dark:bg-white/10">
+      <div 
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className="relative aspect-[4/3] overflow-hidden bg-slate-950/5 dark:bg-slate-900/10 cursor-pointer"
+      >
         <Link href={`/product/${product._id}`} aria-label={`View ${product.title}`}>
-          <Image
-            src={product.images[0]}
-            alt={product.title}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-110"
-          />
+          {product.images && product.images.length > 0 ? (
+            <>
+              {/* Blurred background image to fill sides */}
+              <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+                <Image
+                  src={product.images[currentImageIdx]}
+                  alt=""
+                  fill
+                  className="object-cover blur-2xl scale-125 opacity-70 transition-all duration-300"
+                  sizes="10vw"
+                />
+                <div className="absolute inset-0 bg-black/[0.03] dark:bg-black/20" />
+              </div>
+
+              {/* Ambient shadow gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent pointer-events-none z-10 transition-opacity duration-300" />
+
+              {/* Main sharp image focused in front */}
+              <Image
+                src={product.images[currentImageIdx]}
+                alt={product.title}
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="z-10 object-contain transition-transform duration-500 hover:scale-[1.02]"
+              />
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full text-ink-tertiary">
+              <ImageIcon size={48} />
+            </div>
+          )}
         </Link>
 
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none" />
 
-        <div className="absolute left-3 top-3 z-10 flex gap-2">
+        <div className="absolute left-3 top-3 z-20 flex gap-2">
           <span className={`rounded-full px-3 py-1 text-xs font-black ${sold ? "bg-white text-ink-secondary border border-border/10" : "bg-orange-500 text-white shadow-soft"}`}>
             {sold ? "Sold Out" : "Available"}
           </span>
@@ -82,7 +130,7 @@ export default function ProductCard({ product, isFavorited = false, onToggleFavo
           )}
         </div>
 
-        <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-ink shadow-soft backdrop-blur">
+        <span className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-ink shadow-soft backdrop-blur">
           <ImageIcon size={13} />
           {product.images.length}
         </span>
@@ -93,7 +141,7 @@ export default function ProductCard({ product, isFavorited = false, onToggleFavo
           type="button"
           onClick={handleHeartClick}
           aria-label={isFavorited ? "Remove from favourites" : "Add to favourites"}
-          className={`absolute right-3 bottom-3 z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-soft transition-colors ${
+          className={`absolute right-3 bottom-3 z-20 flex h-11 w-11 items-center justify-center rounded-full shadow-soft transition-colors ${
             isFavorited
               ? "bg-orange-500 text-white"
               : "bg-white/90 text-slate-800 hover:text-orange-500 dark:bg-slate-900/90 dark:text-slate-200 dark:hover:text-orange-500"
