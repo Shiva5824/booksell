@@ -10,7 +10,7 @@ import {
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ref, push, onValue, set, off, serverTimestamp, query, orderByChild, update, get, onDisconnect } from "firebase/database";
+import { ref, push, onValue, set, off, serverTimestamp, query, orderByChild, update, get, onDisconnect, remove } from "firebase/database";
 import { database } from "@/lib/firebase";
 import { getProductById, getUserProfile, uploadImages } from "@/services/api";
 import type { Product } from "@/lib/types";
@@ -246,18 +246,17 @@ function ChatPageContent() {
 
   const handleDeleteChat = async () => {
     if (!user || !activeThreadId) return;
-    if (!window.confirm("Are you sure you want to delete this chat from your list?")) return;
+    if (!window.confirm("Are you sure you want to delete this chat? This action cannot be undone.")) return;
     
     try {
-      await update(ref(database, `users/${user.uid}/chats/${activeThreadId}`), {
-        deleted: true,
-        clearedAt: Date.now()
-      });
+      // Remove the chat thread completely from Firebase
+      await remove(ref(database, `users/${user.uid}/chats/${activeThreadId}`));
       setActiveThreadId(null);
       setIsMobileChatOpen(false);
       setShowDropdown(false);
     } catch (error) {
       console.error("Failed to delete chat:", error);
+      alert("Failed to delete chat. Please try again.");
     }
   };
 
@@ -293,9 +292,11 @@ function ChatPageContent() {
             [uid]: profile ? { 
               avatar: profile.avatar || undefined, 
               phone: profile.phone || undefined, 
-              name: profile.name || undefined 
+              name: profile.name || undefined,
+              isDeleted: false
             } : {
-              name: "Unknown User" // Fallback for deleted accounts
+              name: "Deleted User",
+              isDeleted: true
             }
           }));
         }
@@ -791,7 +792,7 @@ function ChatPageContent() {
           </label>
 
           <div className="flex-1 overflow-y-auto space-y-1 px-2 pb-2">
-            {threads.filter(t => !t.deleted).length === 0 ? (
+            {threads.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-4 text-center py-12 px-4">
                 <MessageCircle size={36} className="text-ink-tertiary" />
                 <div>
@@ -1105,11 +1106,16 @@ function ChatPageContent() {
                 </div>
               )}
 
-              {/* Input */}
-              <form
-                className="flex items-center gap-2 border-t border-border/10 bg-white px-3 py-2.5 sm:px-4 sm:py-3 dark:bg-white/5"
-                onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
-              >
+              {/* Input - Disabled if user is deleted */}
+              {profiles[activeThread.otherUserId]?.isDeleted ? (
+                <div className="flex items-center justify-center border-t border-border/10 bg-red-50 px-4 py-4 dark:bg-red-500/10">
+                  <p className="text-sm font-bold text-red-600 dark:text-red-400">This user has been deleted and you cannot message them.</p>
+                </div>
+              ) : (
+                <form
+                  className="flex items-center gap-2 border-t border-border/10 bg-white px-3 py-2.5 sm:px-4 sm:py-3 dark:bg-white/5"
+                  onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+                >
                 <input 
                   type="file"
                   ref={fileInputRef}
@@ -1151,6 +1157,7 @@ function ChatPageContent() {
                   <Send size={18} />
                 </button>
               </form>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center p-8">

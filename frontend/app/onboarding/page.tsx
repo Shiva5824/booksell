@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { uploadImages, checkPhoneExists } from "@/services/api";
+import { uploadImages, checkPhoneExists, addLocation } from "@/services/api";
 import { INDIAN_COLLEGES } from "@/lib/colleges";
 import { motion, AnimatePresence } from "framer-motion";
-import { GraduationCap, User, Phone, CheckCircle2, ChevronRight, Search, Camera, Loader2 } from "lucide-react";
+import { GraduationCap, User, Phone, CheckCircle2, ChevronRight, Search, Camera, Loader2, MapPin, SkipForward } from "lucide-react";
 import Image from "next/image";
+import LocationPicker from "@/components/LocationPickerNew";
 
 export default function Onboarding() {
   const router = useRouter();
@@ -20,8 +21,10 @@ export default function Onboarding() {
   const [checkingPhone, setCheckingPhone] = useState(false);
   const [college, setCollege] = useState("");
   const [collegeSearch, setCollegeSearch] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -128,6 +131,24 @@ export default function Onboarding() {
         phone,
         college: college.trim()
       });
+
+      if (selectedLocation) {
+        setIsSavingLocation(true);
+        try {
+          await addLocation({
+            address: selectedLocation.address,
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude,
+            label: "Home",
+            isDefault: true,
+          });
+        } catch (err) {
+          console.error("Failed to save location:", err);
+        } finally {
+          setIsSavingLocation(false);
+        }
+      }
+
       router.replace("/");
     } catch (err) {
       alert("Failed to save profile. Please try again.");
@@ -143,7 +164,7 @@ export default function Onboarding() {
       <div className="w-full max-w-md">
         {/* Progress Dots */}
         <div className="flex justify-center gap-2 mb-10">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div 
               key={i} 
               className={`h-1.5 rounded-full transition-all duration-500 ${
@@ -346,13 +367,58 @@ export default function Onboarding() {
                 <div className="flex gap-4">
                   <button onClick={() => setStep(2)} className="btn-secondary flex-1 py-4">Back</button>
                   <button
-                    onClick={handleFinish}
-                    disabled={isSubmitting || !!phoneError || !phone.trim() || checkingPhone}
+                    onClick={() => setStep(4)}
+                    disabled={!!phoneError || !phone.trim() || checkingPhone}
                     className="btn-primary flex-[2] py-4 shadow-glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSubmitting ? "Saving..." : "Start Exploring"}
+                    Next Step
+                    <ChevronRight size={20} />
                   </button>
                 </div>
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div
+                key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-8"
+              >
+                <div className="text-center">
+                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500">
+                    <MapPin size={32} />
+                  </div>
+                  <h1 className="text-2xl font-black text-ink">Set Your Location</h1>
+                  <p className="mt-2 text-sm font-medium text-ink-secondary">This helps match you with nearby buyers (Optional).</p>
+                </div>
+
+                <LocationPicker
+                  onSelectLocation={setSelectedLocation}
+                  savedLocations={[]}
+                  defaultLocation={selectedLocation || undefined}
+                  allowMultiple={false}
+                />
+
+                <div className="flex gap-4">
+                  <button onClick={() => setStep(3)} className="btn-secondary flex-1 py-4">Back</button>
+                  <button
+                    onClick={handleFinish}
+                    disabled={isSubmitting || isSavingLocation}
+                    className="btn-primary flex-[2] py-4 shadow-glow-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting || isSavingLocation ? "Saving..." : "Start Exploring"}
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleFinish}
+                  disabled={isSubmitting || isSavingLocation}
+                  className="w-full p-3 text-center text-sm font-bold text-ink-secondary hover:bg-surface-tertiary rounded-xl transition-colors"
+                >
+                  Skip for Now
+                </button>
               </motion.div>
             )}
           </AnimatePresence>

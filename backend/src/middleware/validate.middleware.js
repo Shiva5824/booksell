@@ -7,6 +7,8 @@ export function validate(schema) {
     });
 
     if (!result.success) {
+      console.error("Zod Validation Error:", JSON.stringify(result.error.flatten(), null, 2));
+      console.error("Request Body:", req.body);
       return res.status(400).json({
         message: "Validation failed",
         errors: result.error.flatten()

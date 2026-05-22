@@ -111,9 +111,9 @@ export default function ProductCard({ product }: { product: Product }) {
             <Icon size={13} />
             <span className="uppercase tracking-wider">{product.category}</span>
           </span>
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-secondary bg-[#f5f2ee] rounded-full px-3 py-1 truncate max-w-[160px] dark:bg-white/10">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-secondary bg-[#f5f2ee] rounded-full px-3 py-1 dark:bg-white/10 min-w-0 max-w-[160px] overflow-hidden">
             <MapPin size={13} className="shrink-0 text-ink-tertiary" />
-            {product.college}
+            <span className="truncate">{product.location?.address || product.college}</span>
           </span>
         </div>
 

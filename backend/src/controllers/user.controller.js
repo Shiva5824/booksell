@@ -185,3 +185,169 @@ export async function checkPhoneExists(req, res) {
     });
   }
 }
+
+/**
+ * Add a location to user's saved locations
+ */
+export async function addLocation(req, res) {
+  try {
+    const { address, latitude, longitude, label, isDefault } = req.body;
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (!address || latitude === undefined || longitude === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Address, latitude, and longitude are required",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const newLocation = {
+      label: label || "My Location",
+      address: address.trim(),
+      latitude,
+      longitude,
+      isDefault: isDefault || false,
+    };
+
+    if (newLocation.isDefault) {
+      user.locations.forEach(loc => loc.isDefault = false);
+    }
+
+    user.locations.push(newLocation);
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Location added successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error("Error adding location:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to add location",
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * Update a user's location
+ */
+export async function updateLocation(req, res) {
+  try {
+    const { locationId } = req.params;
+    const { address, latitude, longitude, label, isDefault } = req.body;
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const location = user.locations.id(locationId);
+    if (!location) {
+      return res.status(404).json({
+        success: false,
+        message: "Location not found",
+      });
+    }
+
+    if (address !== undefined) location.address = address.trim();
+    if (latitude !== undefined) location.latitude = latitude;
+    if (longitude !== undefined) location.longitude = longitude;
+    if (label !== undefined) location.label = label;
+    if (isDefault !== undefined) {
+      if (isDefault) {
+        user.locations.forEach(loc => loc.isDefault = false);
+      }
+      location.isDefault = isDefault;
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Location updated successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error("Error updating location:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update location",
+      error: error.message,
+    });
+  }
+}
+
+/**
+ * Delete a user's location
+ */
+export async function deleteLocation(req, res) {
+  try {
+    const { locationId } = req.params;
+
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const location = user.locations.id(locationId);
+    if (!location) {
+      return res.status(404).json({
+        success: false,
+        message: "Location not found",
+      });
+    }
+
+    location.deleteOne();
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Location deleted successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error("Error deleting location:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete location",
+      error: error.message,
+    });
+  }
+}

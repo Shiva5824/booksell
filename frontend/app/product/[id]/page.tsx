@@ -199,10 +199,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   className="h-16 w-16 rounded-lg object-cover border border-border"
                 />
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-bold text-ink text-lg">{seller.name}</h2>
-                  <p className="flex items-center gap-1.5 text-sm text-ink-secondary mt-1">
+                  <p className="font-bold text-ink truncate max-w-[180px]" title={seller.name}>{seller.name || "Verified seller"}</p>
+                  <p className="flex items-center gap-1.5 text-sm text-ink-secondary mt-1 min-w-0">
                     <MapPin size={16} className="text-primary shrink-0" />
-                    {product.college}
+                    <span className="truncate">{product.location?.address || product.college}</span>
                   </p>
                 </div>
               </div>

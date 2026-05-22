@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   CheckCircle2, Edit3, Heart, LogOut, MessageCircle,
-  PackageCheck, PackageOpen, Plus, ShieldCheck, Trash2, TrendingUp
+  PackageCheck, PackageOpen, Plus, ShieldCheck, Trash2, TrendingUp, MapPin
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
@@ -140,11 +140,19 @@ export default function ProfilePage() {
                   </span>
                 </div>
                 <p className="text-sm sm:text-base font-bold text-ink-secondary">{user.email || user.phoneNumber || ""}</p>
-                {backendUser?.college && (
-                  <div className="inline-flex items-center gap-2 rounded-xl bg-surface-secondary px-3 py-1.5 text-xs font-black text-primary border border-primary/5">
-                    <CheckCircle2 size={14} /> {backendUser.college}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {backendUser?.college && (
+                    <div className="inline-flex items-center gap-2 rounded-xl bg-surface-secondary px-3 py-1.5 text-xs font-black text-primary border border-primary/5">
+                      <CheckCircle2 size={14} /> {backendUser.college}
+                    </div>
+                  )}
+                  {backendUser?.locations && backendUser.locations.find(l => l.isDefault) && (
+                    <div className="inline-flex items-center gap-2 rounded-xl bg-surface-secondary px-3 py-1.5 text-xs font-black text-primary border border-primary/5 max-w-xs">
+                      <MapPin size={14} />
+                      <span className="truncate">{backendUser.locations.find(l => l.isDefault)?.address}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

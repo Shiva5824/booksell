@@ -28,15 +28,21 @@ import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { createProduct, uploadImages } from "@/services/api";
+import { createProduct, uploadImages, getCurrentUser } from "@/services/api";
+import LocationPicker from "@/components/LocationPickerNew";
 
 type ListingForm = {
   title: string;
   price: string;
   description: string;
-  category: "book" | "equipment" | "electronics" | "notes";
+  category: "ipe" | "eapcet" | "jee" | "neet";
   condition: "new" | "good" | "used";
   college: string;
+  location?: {
+    address: string;
+    latitude: number;
+    longitude: number;
+  };
 };
 
 const steps = [
@@ -46,19 +52,21 @@ const steps = [
 ];
 
 export default function PostListingPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, dbUser } = useAuth();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isPublishing, setIsPublishing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [savedLocations, setSavedLocations] = useState<any[]>([]);
   const [form, setForm] = useState<ListingForm>({
     title: "",
     price: "",
     description: "",
-    category: "book",
+    category: "ipe",
     condition: "good",
-    college: ""
+    college: "",
+    location: undefined,
   });
 
   const completion = useMemo(() => {
@@ -66,7 +74,7 @@ export default function PostListingPage() {
       form.title,
       form.price,
       form.description,
-      form.college,
+      form.location?.address,
       files.length > 0
     ];
     return Math.round((checks.filter(Boolean).length / checks.length) * 100);
@@ -81,6 +89,24 @@ export default function PostListingPage() {
       default: return BookOpen;
     }
   }, [form.category]);
+
+  // Fetch user's saved locations
+  useEffect(() => {
+    if (dbUser?.locations) {
+      setSavedLocations(dbUser.locations);
+      if (dbUser.locations.length > 0 && !form.location) {
+        const defaultLocation = dbUser.locations.find((loc: any) => loc.isDefault) || dbUser.locations[0];
+        setForm(prev => ({
+          ...prev,
+          location: {
+            address: defaultLocation.address,
+            latitude: defaultLocation.latitude,
+            longitude: defaultLocation.longitude,
+          }
+        }));
+      }
+    }
+  }, [dbUser]);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,7 +341,7 @@ export default function PostListingPage() {
                   className="space-y-8"
                 >
                   <div className="space-y-6 rounded-2xl border border-border/5 bg-surface-bg p-8 shadow-soft">
-                    <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-6">
                       <label className="space-y-3">
                         <span className="font-bold text-ink">Price (₹) *</span>
                         <div className="relative">
@@ -330,18 +356,15 @@ export default function PostListingPage() {
                         </div>
                       </label>
 
-                      <label className="space-y-3">
-                        <span className="font-bold text-ink">Location/College *</span>
-                        <div className="relative">
-                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={20} />
-                          <input
-                            value={form.college}
-                            onChange={(e) => setForm({ ...form, college: e.target.value })}
-                            placeholder="City Engineering College"
-                            className="input-base pl-12"
-                          />
-                        </div>
-                      </label>
+                      <div className="space-y-3">
+                        <span className="font-bold text-ink">Location *</span>
+                        <LocationPicker
+                          onSelectLocation={(location) => setForm({ ...form, location, college: location.address })}
+                          savedLocations={savedLocations}
+                          defaultLocation={form.location}
+                          allowMultiple={true}
+                        />
+                      </div>
                     </div>
 
                     <label className="block space-y-3">
@@ -363,7 +386,7 @@ export default function PostListingPage() {
                     </button>
                     <button
                       onClick={nextStep}
-                      disabled={!form.price || !form.college || !form.description}
+                      disabled={!form.price || !form.location || !form.description}
                       className="btn-primary flex-[2] py-4 justify-center disabled:opacity-50"
                     >
                       Next: Add Photos
@@ -498,9 +521,9 @@ export default function PostListingPage() {
                     {form.description || "Describe your item here..."}
                   </p>
 
-                  <div className="flex items-center gap-2 border-t border-border/5 pt-4 text-xs font-bold text-ink-tertiary">
-                    <MapPin size={14} className="text-primary" />
-                    {form.college || "Your College"}
+                  <div className="flex items-center gap-2 border-t border-border/5 pt-4 text-xs font-bold text-ink-tertiary min-w-0 overflow-hidden">
+                    <MapPin size={14} className="text-primary shrink-0" />
+                    <span className="truncate" title={form.location?.address || "Pick a location"}>{form.location?.address || "Pick a location"}</span>
                   </div>
                 </div>
               </div>

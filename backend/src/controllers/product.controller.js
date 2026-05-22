@@ -117,8 +117,11 @@ export async function getProduct(req, res) {
  */
 export async function createProduct(req, res) {
   try {
-    const { title, description, price, category, condition, college, images } = req.body;
+    const { title, description, price, category, condition, college, images, location } = req.body;
     const sellerId = req.user._id;
+
+    // Auto-set college from location.address if not explicitly provided
+    const resolvedCollege = college || (location && location.address) || "";
 
     const product = new Product({
       title,
@@ -126,11 +129,19 @@ export async function createProduct(req, res) {
       price,
       category,
       condition,
-      college,
+      college: resolvedCollege,
       images,
       sellerId,
       status: "active",
     });
+
+    if (location && location.address && location.latitude !== undefined && location.longitude !== undefined) {
+      product.location = {
+        address: location.address,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      };
+    }
 
     await product.save();
     await product.populate("sellerId", "name email avatar college phone firebaseUid");
@@ -165,7 +176,7 @@ export async function createProduct(req, res) {
 export async function updateProduct(req, res) {
   try {
     const { id } = req.params;
-    const { title, description, price, category, condition, college, images, status } = req.body;
+    const { title, description, price, category, condition, college, images, status, location } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -200,6 +211,21 @@ export async function updateProduct(req, res) {
     if (college !== undefined) product.college = college;
     if (images !== undefined) product.images = images;
     if (status !== undefined) product.status = status;
+    if (location !== undefined) {
+      if (location && location.address && location.latitude !== undefined && location.longitude !== undefined) {
+        product.location = {
+          address: location.address,
+          latitude: location.latitude,
+          longitude: location.longitude,
+        };
+        // Auto-sync college from location address if not explicitly provided
+        if (college === undefined) {
+          product.college = location.address;
+        }
+      } else {
+        product.location = undefined;
+      }
+    }
 
     await product.save();
     await product.populate("sellerId", "name email avatar college phone firebaseUid");

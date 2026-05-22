@@ -60,9 +60,12 @@ export async function createProduct(data: any) {
       headers: getAuthHeader(),
     });
     return response.data.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating product:", error);
-    throw error;
+    if (error.response?.data?.errors) {
+      throw new Error("Validation Error: " + JSON.stringify(error.response.data.errors));
+    }
+    throw new Error(error.response?.data?.message || error.message);
   }
 }
 
@@ -72,9 +75,12 @@ export async function updateProduct(id: string, data: any) {
       headers: getAuthHeader(),
     });
     return response.data.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating product:", error);
-    throw error;
+    if (error.response?.data?.errors) {
+      throw new Error("Validation Error: " + JSON.stringify(error.response.data.errors));
+    }
+    throw new Error(error.response?.data?.message || error.message);
   }
 }
 
@@ -286,6 +292,44 @@ export async function deleteUserAccountAdmin(id: string) {
     return response.data;
   } catch (error) {
     console.error("Error deleting user account:", error);
+    throw error;
+  }
+}
+
+// ===== LOCATION ENDPOINTS =====
+
+export async function addLocation(data: { address: string; latitude: number; longitude: number; label?: string; isDefault?: boolean }) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/users/location`, data, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error adding location:", error);
+    throw error;
+  }
+}
+
+export async function updateLocation(locationId: string, data: { address?: string; latitude?: number; longitude?: number; label?: string; isDefault?: boolean }) {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/users/location/${locationId}`, data, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating location:", error);
+    throw error;
+  }
+}
+
+export async function deleteLocation(locationId: string) {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/users/location/${locationId}`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting location:", error);
     throw error;
   }
 }

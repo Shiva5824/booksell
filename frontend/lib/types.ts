@@ -2,6 +2,16 @@ export type ProductCategory = "ipe" | "eapcet" | "jee" | "neet";
 export type ProductCondition = "new" | "good" | "used";
 export type ProductStatus = "active" | "sold";
 
+export interface Location {
+  _id: string;
+  label: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  isDefault: boolean;
+  createdAt: string;
+}
+
 export interface User {
   _id: string;
   name: string;
@@ -10,6 +20,7 @@ export interface User {
   firebaseUid?: string;
   avatar?: string;
   phone?: string;
+  locations?: Location[];
 }
 
 export interface Product {
@@ -21,6 +32,11 @@ export interface Product {
   images: string[];
   description: string;
   college: string;
+  location?: {
+    address: string;
+    latitude: number;
+    longitude: number;
+  };
   sellerId: User | string;
   status: ProductStatus;
   createdAt: string;

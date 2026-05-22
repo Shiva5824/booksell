@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { updateProduct, uploadImages } from "@/services/api";
 import type { Product } from "@/lib/types";
 import Image from "next/image";
+import LocationPicker from "@/components/LocationPickerNew";
 
 interface EditListingModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export default function EditListingModal({
     category: product.category,
     condition: product.condition,
     college: product.college,
+    location: product.location || undefined as { address: string; latitude: number; longitude: number } | undefined,
   });
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function EditListingModal({
       category: product.category,
       condition: product.condition,
       college: product.college,
+      location: product.location || undefined,
     });
     setExistingImages(product.images);
     setNewFiles([]);
@@ -82,8 +85,8 @@ export default function EditListingModal({
     setError("");
 
     try {
-      if (!form.title.trim() || !form.price || !form.description.trim() || !form.college.trim()) {
-        throw new Error("Please fill in all required fields.");
+      if (!form.title.trim() || !form.price || !form.description.trim() || (!form.location?.address && !form.college?.trim())) {
+        throw new Error("Please fill in all required fields including location.");
       }
 
       if (existingImages.length + newFiles.length === 0) {
@@ -98,10 +101,15 @@ export default function EditListingModal({
         finalImages = [...finalImages, ...uploadedUrls];
       }
 
-      const updatedData = {
-        ...form,
+      const updatedData: any = {
+        title: form.title,
+        description: form.description,
+        category: form.category,
+        condition: form.condition,
         price: Number(form.price),
         images: finalImages,
+        college: form.location?.address || form.college,
+        location: form.location,
       };
 
       const result = await updateProduct(product._id, updatedData);
@@ -226,18 +234,14 @@ export default function EditListingModal({
                     </div>
                   </label>
 
-                  <label className="space-y-3">
+                  <div className="space-y-3">
                     <span className="text-sm font-black text-ink-secondary uppercase tracking-widest">Location *</span>
-                    <div className="relative">
-                      <MapPin className="absolute left-6 top-1/2 -translate-y-1/2 text-primary" size={20} />
-                      <input
-                        value={form.college}
-                        onChange={(e) => setForm({ ...form, college: e.target.value })}
-                        className="w-full rounded-2xl border border-border/10 bg-surface-secondary/50 pl-14 pr-6 py-4 text-lg font-bold text-ink placeholder:text-ink-tertiary focus:border-primary/50 focus:bg-surface-secondary/80 outline-none transition-all"
-                        placeholder="College Name"
-                      />
-                    </div>
-                  </label>
+                    <LocationPicker
+                      onSelectLocation={(location) => setForm({ ...form, location, college: location.address })}
+                      defaultLocation={form.location}
+                      allowMultiple={false}
+                    />
+                  </div>
 
                   <div className="space-y-3 col-span-2">
                     <span className="text-sm font-black text-ink-secondary uppercase tracking-widest">Category</span>
