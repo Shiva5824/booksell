@@ -577,22 +577,29 @@ function ChatPageContent() {
 
     const updateConv = async (uid: string, otherUid: string, otherName: string, isSender: boolean) => {
       try {
-        let unreadCount = 0;
-        if (!isSender) {
-          const snapshot = await get(ref(database, `users/${uid}/chats/${conversationId}/unread`));
-          unreadCount = (snapshot.val() || 0) + 1;
-        }
-
-        await update(ref(database, `users/${uid}/chats/${conversationId}`), {
+        const updateData: any = {
           productId: activeThread.productId || "",
           productTitle: activeThread.productTitle || "",
           otherUserId: otherUid || "",
           otherUserName: otherName || "User",
           lastMessage: messageText || "",
           timestamp: serverTimestamp(),
-          unread: unreadCount,
           deleted: false,
-        });
+        };
+
+        // Only increment unread for non-senders
+        if (!isSender) {
+          // Read current value to properly increment
+          const chatRef = ref(database, `users/${uid}/chats/${conversationId}`);
+          const snapshot = await get(chatRef);
+          const currentUnread = snapshot.val()?.unread || 0;
+          updateData.unread = currentUnread + 1;
+        } else {
+          // Sender always resets unread to 0
+          updateData.unread = 0;
+        }
+
+        await update(ref(database, `users/${uid}/chats/${conversationId}`), updateData);
       } catch (dbErr) {
         console.warn(`Could not update chats list for user: ${uid}. Verify Firebase Realtime Database Security Rules if PERMISSION_DENIED occurs. Error:`, dbErr);
       }
@@ -643,22 +650,29 @@ function ChatPageContent() {
 
         const updateConv = async (uid: string, otherUid: string, otherName: string, isSender: boolean) => {
           try {
-            let unreadCount = 0;
-            if (!isSender) {
-              const snapshot = await get(ref(database, `users/${uid}/chats/${conversationId}/unread`));
-              unreadCount = (snapshot.val() || 0) + 1;
-            }
-
-            await update(ref(database, `users/${uid}/chats/${conversationId}`), {
+            const updateData: any = {
               productId: activeThread.productId || "",
               productTitle: activeThread.productTitle || "",
               otherUserId: otherUid || "",
               otherUserName: otherName || "User",
               lastMessage: "📷 Image",
               timestamp: serverTimestamp(),
-              unread: unreadCount,
               deleted: false,
-            });
+            };
+
+            // Only increment unread for non-senders
+            if (!isSender) {
+              // Read current value to properly increment
+              const chatRef = ref(database, `users/${uid}/chats/${conversationId}`);
+              const snapshot = await get(chatRef);
+              const currentUnread = snapshot.val()?.unread || 0;
+              updateData.unread = currentUnread + 1;
+            } else {
+              // Sender always resets unread to 0
+              updateData.unread = 0;
+            }
+
+            await update(ref(database, `users/${uid}/chats/${conversationId}`), updateData);
           } catch (dbErr) {
             console.warn(`Could not update chats list for user: ${uid}. Verify Firebase Realtime Database Security Rules if PERMISSION_DENIED occurs. Error:`, dbErr);
           }
@@ -748,7 +762,7 @@ function ChatPageContent() {
 
   return ( 
     <main 
-      className="bg-surface-secondary md:static fixed left-0 right-0 overflow-hidden flex flex-col md:h-[calc(100vh-60px)]" 
+      className="bg-surface-secondary md:static fixed left-0 right-0 overflow-hidden md:overflow-visible flex flex-col w-full md:w-full md:h-[calc(100vh-60px)]" 
       style={isMobile ? {
         top: isMobileChatOpen ? "0px" : "56px",
         bottom: isMobileChatOpen ? "0px" : "58px",
@@ -757,7 +771,7 @@ function ChatPageContent() {
         height: "calc(100vh - 60px)"
       }}
     >
-      <div className="mx-auto grid max-w-7xl gap-0 md:gap-4 p-0 md:p-4 h-full md:grid-cols-[340px_1fr]">
+      <div className="grid max-w-full gap-0 md:gap-4 p-0 md:p-4 h-full md:grid-cols-[340px_1fr] w-full overflow-hidden md:overflow-visible">
 
         {/* Thread Sidebar */}
         <aside className={`${isMobileChatOpen ? "hidden" : "flex"} md:flex flex-col md:rounded-2xl border-0 md:border border-border/10 bg-white shadow-soft overflow-hidden dark:bg-white/5`}>

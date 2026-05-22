@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import SearchBar from "@/components/SearchBar";
+import HeroCarousel from "@/components/HeroCarousel";
 import { getProducts } from "@/services/api";
 import { getSiteContact } from "@/services/site";
 import type { Product, ProductFilters } from "@/lib/types";
@@ -183,26 +184,8 @@ export default function HomePage() {
             </motion.div>
           </motion.div>
 
-          {/* Hero image — hidden on mobile to keep layout clean */}
-          <motion.div
-            initial={{ opacity: 0, x: 42 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, type: "spring", bounce: 0.28 }}
-            className="relative hidden lg:block min-h-[610px]"
-          >
-            <div className="absolute -left-5 -top-5 h-32 w-32 rounded-full bg-orange-200 blur-3xl" />
-            <img
-              src="https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1400&auto=format&fit=crop"
-              alt="Students browsing books in a library"
-              className="relative h-[610px] w-full rounded-[34px] object-cover shadow-2xl"
-            />
-            <div className="absolute bottom-5 left-5 right-5 rounded-[26px] bg-white/95 p-5 shadow-soft-lg backdrop-blur-md dark:bg-slate-950/90">
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-orange-500">Campus-ready</p>
-              <p className="mt-2 text-lg font-black text-ink leading-snug">
-                Engineering &amp; Medical prep books from real student listings.
-              </p>
-            </div>
-          </motion.div>
+          {/* Hero image — carousel component */}
+          <HeroCarousel />
         </div>
       </section>
 

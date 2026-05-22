@@ -3,7 +3,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { LayoutDashboard, Users, ShoppingBag, ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, ShieldCheck, ArrowLeft, Loader2, Image } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

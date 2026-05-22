@@ -1,13 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { getAdminProducts, toggleProductDisabled } from "@/services/api";
-import { Search, Eye, EyeOff, Tag, MapPin, User, Package } from "lucide-react";
+import { Search, Eye, EyeOff, Tag, MapPin, User, Package, Image } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import AdminMediaComponent from "@/components/AdminMedia";
 
 export default function ProductManagement() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"listings" | "media">("listings");
 
   useEffect(() => {
     loadProducts();
@@ -40,7 +42,36 @@ export default function ProductManagement() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-border/10">
+        <button
+          onClick={() => setActiveTab("listings")}
+          className={`px-4 py-3 font-bold flex items-center gap-2 transition-colors border-b-2 ${
+            activeTab === "listings"
+              ? "border-primary text-primary"
+              : "border-transparent text-ink-secondary hover:text-ink"
+          }`}
+        >
+          <Package size={18} />
+          Listings
+        </button>
+        <button
+          onClick={() => setActiveTab("media")}
+          className={`px-4 py-3 font-bold flex items-center gap-2 transition-colors border-b-2 ${
+            activeTab === "media"
+              ? "border-primary text-primary"
+              : "border-transparent text-ink-secondary hover:text-ink"
+          }`}
+        >
+          <Image size={18} />
+          Media
+        </button>
+      </div>
+
+      {/* Listings Tab */}
+      {activeTab === "listings" && (
+      <div className="space-y-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-black tracking-tight text-ink">Listing Management</h1>
           <p className="mt-2 font-medium text-ink-secondary text-sm">Moderate all platform listings and soft-delete problematic content.</p>
@@ -207,6 +238,19 @@ export default function ProductManagement() {
           </div>
         )}
       </div>
+      </div>
+      )}
+
+      {/* Media Tab */}
+      {activeTab === "media" && (
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-ink">Media Management</h1>
+            <p className="mt-2 font-medium text-ink-secondary text-sm">Manage carousel images for the homepage.</p>
+          </div>
+          <AdminMediaComponent />
+        </div>
+      )}
     </div>
   );
 }
