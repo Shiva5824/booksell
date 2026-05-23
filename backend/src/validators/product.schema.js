@@ -31,7 +31,7 @@ export const createProductSchema = z.object({
     category: z.enum(["ipe", "eapcet", "jee", "neet"]),
     images: z.array(z.string().url()).min(1).max(6),
     description: z.string().min(3).max(2000),
-    college: z.string().min(1).max(500).optional(),
+    college: z.string().max(500).optional(),
     location: z.object({
       address: z.string().min(1).max(500),
       latitude: z.number(),
