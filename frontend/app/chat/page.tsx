@@ -500,8 +500,24 @@ function ChatPageContent() {
     if (productId && user) {
       getProductById(productId).then((product) => {
         if (product) {
-          const seller = product.sellerId as any;
-          if (seller._id === user.uid || seller.firebaseUid === user.uid) return;
+          const seller = typeof product.sellerId === "string"
+            ? { _id: product.sellerId }
+            : product.sellerId as any;
+          if (!seller) return;
+
+          const sellerEmail = seller.email?.trim().toLowerCase();
+          const currentEmail = (dbUser?.email || user.email || "").trim().toLowerCase();
+          const sellerMongoId = seller._id?.toString();
+          const currentMongoId = dbUser?._id?.toString();
+
+          if (
+            seller.firebaseUid === user.uid ||
+            sellerMongoId === currentMongoId ||
+            (sellerEmail && currentEmail && sellerEmail === currentEmail)
+          ) {
+            return;
+          }
+
           setInitiatingProduct(product);
           const existing = threads.find((t) => t.productId === productId && t.otherUserId === (seller.firebaseUid || seller._id));
           if (existing) {
@@ -516,7 +532,7 @@ function ChatPageContent() {
         }
       });
     }
-  }, [productId, user, threads]);
+  }, [productId, user, dbUser, threads]);
 
   if (loading || !user) {
     return (

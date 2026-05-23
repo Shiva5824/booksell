@@ -106,12 +106,15 @@ export async function getUserProfile(userId: string) {
   if (!userId || userId === "undefined" || userId === "null") {
     return null;
   }
-  console.log("[getUserProfile] Fetching profile for userId:", userId);
   try {
     const response = await axios.get(`${API_BASE_URL}/users/${userId}`);
     return response.data.data;
   } catch (error: any) {
-    console.error(
+    if (error.response?.status === 404) {
+      return null;
+    }
+
+    console.warn(
       `[getUserProfile] Failed fetching profile for userId: ${userId}. Response:`,
       error.response?.data || error.message
     );
@@ -252,7 +255,7 @@ export async function getAdminUsers() {
     return response.data.data || [];
   } catch (error) {
     console.error("Error fetching admin users:", error);
-    return [];
+    throw error;
   }
 }
 

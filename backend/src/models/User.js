@@ -3,8 +3,9 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     firebaseUid: { type: String, required: true, unique: true, index: true },
+    linkedFirebaseUids: { type: [String], default: [] },
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, lowercase: true, trim: true },
+    email: { type: String, required: true, lowercase: true, trim: true, index: true },
     college: { type: String, default: "", trim: true, index: true },
     avatar: { type: String, default: "" },
     phone: { type: String, default: "" },

@@ -85,6 +85,19 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       : (product.sellerId as User);
   }, [product.sellerId, product.college]);
 
+  const isOwnListing = useMemo(() => {
+    if (!user || !seller) return false;
+
+    const sellerEmail = seller.email?.trim().toLowerCase();
+    const currentEmail = (dbUser?.email || user.email || "").trim().toLowerCase();
+
+    return Boolean(
+      seller.firebaseUid === user.uid ||
+      seller._id === dbUser?._id ||
+      (sellerEmail && currentEmail && sellerEmail === currentEmail)
+    );
+  }, [seller, user, dbUser]);
+
   // Clean WhatsApp number and format
   const whatsappUrl = useMemo(() => {
     if (!seller || !seller.phone) return null;
@@ -467,28 +480,40 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
               {/* Actions */}
               <div className="grid gap-3 pt-2">
-                <Link
-                  href={`/chat?product=${product._id}`}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 font-bold text-white shadow-soft transition-all duration-300 hover:bg-slate-800 active:scale-[0.98]"
-                >
-                  <MessageCircle size={20} className="stroke-[2.5]" />
-                  Message on Chat
-                </Link>
-
-                {whatsappUrl ? (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 font-bold text-white shadow-soft hover:shadow-glow-primary/10 transition-all duration-300 hover:bg-[#20ba59] active:scale-[0.98]"
+                {isOwnListing ? (
+                  <Link
+                    href="/profile"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-surface-tertiary py-4 font-bold text-ink shadow-soft transition-all duration-300 hover:bg-surface-glass active:scale-[0.98]"
                   >
-                    <Phone size={20} className="fill-white stroke-none" />
-                    Chat on WhatsApp
-                  </a>
+                    <MessageCircle size={20} className="stroke-[2.5]" />
+                    Your Listing
+                  </Link>
                 ) : (
-                  <div className="w-full py-3.5 text-center text-xs font-bold text-ink-tertiary bg-surface-tertiary rounded-xl border border-dashed border-border/10">
-                    Seller WhatsApp not available
-                  </div>
+                  <>
+                    <Link
+                      href={`/chat?product=${product._id}`}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 font-bold text-white shadow-soft transition-all duration-300 hover:bg-slate-800 active:scale-[0.98]"
+                    >
+                      <MessageCircle size={20} className="stroke-[2.5]" />
+                      Message on Chat
+                    </Link>
+
+                    {whatsappUrl ? (
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 font-bold text-white shadow-soft hover:shadow-glow-primary/10 transition-all duration-300 hover:bg-[#20ba59] active:scale-[0.98]"
+                      >
+                        <Phone size={20} className="fill-white stroke-none" />
+                        Chat on WhatsApp
+                      </a>
+                    ) : (
+                      <div className="w-full py-3.5 text-center text-xs font-bold text-ink-tertiary bg-surface-tertiary rounded-xl border border-dashed border-border/10">
+                        Seller WhatsApp not available
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -704,28 +729,40 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
               {/* Interactive Contact Actions */}
               <div className="grid gap-3">
-                <Link
-                  href={`/chat?product=${product._id}`}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 font-bold text-white shadow-soft transition-all duration-300 hover:bg-slate-800 active:scale-[0.98]"
-                >
-                  <MessageCircle size={20} className="stroke-[2.5]" />
-                  Message on Chat
-                </Link>
-
-                {whatsappUrl ? (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 font-bold text-white shadow-soft hover:shadow-glow-primary/10 transition-all duration-300 hover:bg-[#20ba59] active:scale-[0.98]"
+                {isOwnListing ? (
+                  <Link
+                    href="/profile"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-surface-tertiary py-4 font-bold text-ink shadow-soft transition-all duration-300 hover:bg-surface-glass active:scale-[0.98]"
                   >
-                    <Phone size={20} className="fill-white stroke-none" />
-                    Chat on WhatsApp
-                  </a>
+                    <MessageCircle size={20} className="stroke-[2.5]" />
+                    Your Listing
+                  </Link>
                 ) : (
-                  <div className="w-full py-3.5 text-center text-xs font-bold text-ink-tertiary bg-surface-tertiary rounded-xl border border-dashed border-border/10">
-                    Seller WhatsApp not available
-                  </div>
+                  <>
+                    <Link
+                      href={`/chat?product=${product._id}`}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 font-bold text-white shadow-soft transition-all duration-300 hover:bg-slate-800 active:scale-[0.98]"
+                    >
+                      <MessageCircle size={20} className="stroke-[2.5]" />
+                      Message on Chat
+                    </Link>
+
+                    {whatsappUrl ? (
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 font-bold text-white shadow-soft hover:shadow-glow-primary/10 transition-all duration-300 hover:bg-[#20ba59] active:scale-[0.98]"
+                      >
+                        <Phone size={20} className="fill-white stroke-none" />
+                        Chat on WhatsApp
+                      </a>
+                    ) : (
+                      <div className="w-full py-3.5 text-center text-xs font-bold text-ink-tertiary bg-surface-tertiary rounded-xl border border-dashed border-border/10">
+                        Seller WhatsApp not available
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

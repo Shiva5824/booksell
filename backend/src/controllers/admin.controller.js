@@ -1,6 +1,70 @@
 import User from "../models/User.js";
 import Product from "../models/Product.js";
 import { firebaseAuth } from "../config/firebase.js";
+import { findUsersByEmail, normalizeEmail } from "../utils/accountMerge.util.js";
+
+function firstFilled(...values) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function pickAdminDisplayUser(users, currentFirebaseUid) {
+  return [...users].sort((a, b) => {
+    if (a.firebaseUid === currentFirebaseUid) return -1;
+    if (b.firebaseUid === currentFirebaseUid) return 1;
+
+    if (a.role !== b.role) return a.role === "admin" ? -1 : 1;
+    if (a.isActive !== b.isActive) return a.isActive === false ? 1 : -1;
+
+    const aLogin = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+    const bLogin = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+    if (aLogin !== bLogin) return bLogin - aLogin;
+
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  })[0];
+}
+
+function collapseUsersForAdmin(users, currentFirebaseUid) {
+  const grouped = new Map();
+
+  users.forEach((user) => {
+    const email = normalizeEmail(user.email);
+    const key = email || user._id.toString();
+    const group = grouped.get(key) || [];
+    group.push(user);
+    grouped.set(key, group);
+  });
+
+  return [...grouped.values()]
+    .map((group) => {
+      const selected = pickAdminDisplayUser(group, currentFirebaseUid);
+      const allFirebaseUids = [
+        ...new Set(group.flatMap((user) => [user.firebaseUid, ...(user.linkedFirebaseUids || [])]).filter(Boolean))
+      ];
+
+      return {
+        ...selected.toObject(),
+        firebaseUid: allFirebaseUids.includes(currentFirebaseUid) ? currentFirebaseUid : selected.firebaseUid,
+        linkedFirebaseUids: allFirebaseUids,
+        name: firstFilled(selected.name, ...group.map((user) => user.name), "User"),
+        email: normalizeEmail(selected.email) || firstFilled(...group.map((user) => user.email)),
+        avatar: firstFilled(selected.avatar, ...group.map((user) => user.avatar)),
+        phone: firstFilled(selected.phone, ...group.map((user) => user.phone)),
+        college: firstFilled(selected.college, ...group.map((user) => user.college)),
+        role: group.some((user) => user.role === "admin") ? "admin" : "user",
+        isActive: group.some((user) => user.isActive !== false),
+        lastLogin: group
+          .map((user) => user.lastLogin)
+          .filter(Boolean)
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] || selected.lastLogin,
+        duplicateCount: group.length,
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+}
 
 export async function getStats(req, res, next) {
   try {
@@ -105,7 +169,7 @@ export async function resetTraffic(req, res, next) {
 export async function getAllUsers(req, res, next) {
   try {
     const users = await User.find().sort({ createdAt: -1 });
-    res.json({ data: users });
+    res.json({ data: collapseUsersForAdmin(users, req.firebaseUser.uid) });
   } catch (error) {
     next(error);
   }
@@ -187,35 +251,53 @@ export async function deleteUserAccount(req, res, next) {
       return res.status(400).json({ message: "You cannot delete your own admin account." });
     }
 
-    // 1. Delete user from Firebase Auth
+    const usersToDelete = user.email
+      ? await findUsersByEmail(user.email)
+      : [user];
+    const deleteIds = usersToDelete.map((account) => account._id);
+    const firebaseUids = [
+      ...new Set(
+        usersToDelete
+          .flatMap((account) => [account.firebaseUid, ...(account.linkedFirebaseUids || [])])
+          .filter(Boolean)
+      )
+    ];
+
+    if (usersToDelete.some((account) => account.firebaseUid === req.firebaseUser.uid)) {
+      return res.status(400).json({ message: "You cannot delete your own admin account." });
+    }
+
+    // 1. Delete every Firebase Auth identity attached to this email/account
     if (firebaseAuth) {
-      try {
-        await firebaseAuth.deleteUser(user.firebaseUid);
-        console.log(`Successfully deleted user ${user.email} from Firebase Auth.`);
-      } catch (firebaseError) {
-        if (firebaseError.code === "auth/user-not-found") {
-          console.log(`User ${user.email} was not found in Firebase Auth; proceeding with MongoDB cleanup.`);
-        } else {
-          console.error(`Firebase Auth deletion failed for UID ${user.firebaseUid}:`, firebaseError);
-          return res.status(500).json({
-            message: `Failed to delete user credentials from Firebase: ${firebaseError.message || firebaseError}`
-          });
+      for (const firebaseUid of firebaseUids) {
+        try {
+          await firebaseAuth.deleteUser(firebaseUid);
+          console.log(`Successfully deleted Firebase Auth user ${firebaseUid} for ${user.email}.`);
+        } catch (firebaseError) {
+          if (firebaseError.code === "auth/user-not-found") {
+            console.log(`Firebase Auth user ${firebaseUid} was already gone; proceeding with MongoDB cleanup.`);
+          } else {
+            console.error(`Firebase Auth deletion failed for UID ${firebaseUid}:`, firebaseError);
+            return res.status(500).json({
+              message: `Failed to delete user credentials from Firebase: ${firebaseError.message || firebaseError}`
+            });
+          }
         }
       }
     } else {
       console.warn("Firebase Auth Admin SDK is not initialized; skipping Firebase deletion.");
     }
 
-    // 2. Delete the user's products/listings
-    const deletedProductsResult = await Product.deleteMany({ sellerId: id });
-    console.log(`Deleted ${deletedProductsResult.deletedCount} products associated with user ${id}.`);
+    // 2. Delete the user's products/listings across duplicate Mongo accounts
+    const deletedProductsResult = await Product.deleteMany({ sellerId: { $in: deleteIds } });
+    console.log(`Deleted ${deletedProductsResult.deletedCount} products associated with user account group ${deleteIds.join(", ")}.`);
 
-    // 3. Delete the user document from MongoDB
-    await User.findByIdAndDelete(id);
+    // 3. Delete all MongoDB user documents for this identity
+    await User.deleteMany({ _id: { $in: deleteIds } });
 
     res.json({
       success: true,
-      message: "User account, associated listings, and auth credentials deleted successfully."
+      message: "User account, duplicate profile records, associated listings, and auth credentials deleted successfully."
     });
   } catch (error) {
     next(error);

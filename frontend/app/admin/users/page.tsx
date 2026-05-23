@@ -30,6 +30,7 @@ export default function UserManagement() {
       setUsers(data);
     } catch (err) {
       console.error(err);
+      showNotification("Failed to load user profiles.", "error");
     } finally {
       setLoading(false);
     }
@@ -82,10 +83,19 @@ export default function UserManagement() {
     }
   }
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter((u) => {
+    const query = searchTerm.trim().toLowerCase();
+    const name = (u?.name || "").toLowerCase();
+    const email = (u?.email || "").toLowerCase();
+    return name.includes(query) || email.includes(query);
+  });
+
+  const formatDate = (date?: string) => {
+    if (!date) return "Not set";
+
+    const parsed = new Date(date);
+    return Number.isNaN(parsed.getTime()) ? "Not set" : parsed.toLocaleDateString();
+  };
 
   return (
     <div className="space-y-8 relative">
@@ -155,7 +165,7 @@ export default function UserManagement() {
                             <img src={user.avatar} alt="" className="h-full w-full object-cover" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center font-bold text-ink-tertiary">
-                              {user.name[0]}
+                              {(user.name || "?")[0]}
                             </div>
                           )}
                           {user.role === "admin" && (
@@ -165,10 +175,10 @@ export default function UserManagement() {
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-ink">{user.name}</p>
+                          <p className="text-sm font-black text-ink">{user.name || "User"}</p>
                           <div className="flex items-center gap-1.5 text-xs font-medium text-ink-secondary">
                             <Mail size={12} />
-                            {user.email}
+                            {user.email || "No email"}
                           </div>
                         </div>
                       </div>
@@ -182,11 +192,11 @@ export default function UserManagement() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2 text-sm font-bold text-ink-secondary">
                         <Calendar size={14} className="text-ink-tertiary" />
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {formatDate(user.createdAt)}
                       </div>
                     </td>
                     <td className="px-6 py-5 text-sm font-bold text-ink-secondary">
-                      {new Date(user.lastLogin).toLocaleDateString()}
+                      {formatDate(user.lastLogin)}
                     </td>
                     <td className="px-6 py-5">
                       <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${
@@ -205,7 +215,7 @@ export default function UserManagement() {
                               : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
                           }`}
                         >
-                          {user.role === "admin" 
+                        {user.role === "admin" 
                             ? <div className="flex items-center gap-1.5"><ShieldOff size={14} /> Demote</div> 
                             : <div className="flex items-center gap-1.5"><Shield size={14} /> Promote</div>}
                         </button>
@@ -257,7 +267,7 @@ export default function UserManagement() {
                       <img src={user.avatar} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center font-bold text-ink-tertiary">
-                        {user.name[0]}
+                              {(user.name || "?")[0]}
                       </div>
                     )}
                     {user.role === "admin" && (
@@ -267,8 +277,8 @@ export default function UserManagement() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-ink truncate">{user.name}</p>
-                    <p className="text-xs font-semibold text-ink-secondary truncate">{user.email}</p>
+                    <p className="text-sm font-black text-ink truncate">{user.name || "User"}</p>
+                    <p className="text-xs font-semibold text-ink-secondary truncate">{user.email || "No email"}</p>
                   </div>
                 </div>
 
@@ -280,7 +290,7 @@ export default function UserManagement() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Calendar size={12} className="text-ink-tertiary shrink-0" />
-                    <span>{new Date(user.createdAt).toLocaleDateString()}</span>
+                    <span>{formatDate(user.createdAt)}</span>
                   </div>
                 </div>
 

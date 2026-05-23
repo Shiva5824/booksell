@@ -11,10 +11,15 @@ export async function getUser(req, res) {
 
     let user;
     if (mongoose.Types.ObjectId.isValid(id)) {
-      user = await User.findById(id).select("-firebaseUid");
+      user = await User.findById(id).select("-firebaseUid -linkedFirebaseUids");
     } else {
-      // If not a valid ObjectId, try finding by firebaseUid
-      user = await User.findOne({ firebaseUid: id }).select("-firebaseUid");
+      // Chat threads can contain an older Firebase UID after an account is recreated.
+      user = await User.findOne({
+        $or: [
+          { firebaseUid: id },
+          { linkedFirebaseUids: id },
+        ],
+      }).select("-firebaseUid -linkedFirebaseUids");
     }
 
     if (!user) {
@@ -426,4 +431,3 @@ export async function getFavorites(req, res) {
     res.status(500).json({ success: false, message: "Failed to fetch favorites", error: error.message });
   }
 }
-
