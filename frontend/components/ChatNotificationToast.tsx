@@ -27,75 +27,45 @@ export default function ChatNotificationToast() {
   const previousChatsRef = useRef<Record<string, any>>({});
   const initialLoadCompleted = useRef(false);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Initialize + unlock audio
+  // Initialize WebAudio context only (no remote audio file — synthesized chimes
+  // avoid third-party CDN failures that could surface as runtime errors).
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    audioRef.current = new Audio(
-      "https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav"
-    );
-
-    audioRef.current.volume = 0.45;
-    audioRef.current.preload = "auto";
 
     const AudioContextClass =
       window.AudioContext ||
       (window as any).webkitAudioContext;
 
     if (AudioContextClass) {
-      audioCtxRef.current = new AudioContextClass();
+      try {
+        audioCtxRef.current = new AudioContextClass();
+      } catch (err) {
+        console.warn("AudioContext init failed:", err);
+      }
     }
 
     const unlockAudio = async () => {
       try {
-        // unlock HTML audio
-        if (audioRef.current) {
-          await audioRef.current.play();
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-
-        // unlock WebAudio
         if (
           audioCtxRef.current &&
           audioCtxRef.current.state === "suspended"
         ) {
           await audioCtxRef.current.resume();
         }
-
-        console.log("Audio unlocked");
       } catch (err) {
-        console.log("Audio unlock failed:", err);
+        // Swallow — autoplay policy can block this until next interaction
       }
     };
 
-    document.addEventListener(
-      "click",
-      unlockAudio,
-      { once: true }
-    );
-
-    document.addEventListener(
-      "touchstart",
-      unlockAudio,
-      { once: true }
-    );
+    document.addEventListener("click", unlockAudio, { once: true });
+    document.addEventListener("touchstart", unlockAudio, { once: true });
 
     return () => {
-      document.removeEventListener(
-        "click",
-        unlockAudio
-      );
-
-      document.removeEventListener(
-        "touchstart",
-        unlockAudio
-      );
-
-      audioCtxRef.current?.close();
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+      try { audioCtxRef.current?.close(); } catch {}
     };
   }, []);
 
@@ -104,6 +74,7 @@ export default function ChatNotificationToast() {
       const ctx = audioCtxRef.current;
 
       if (!ctx) return;
+      if (ctx.state === "closed") return;
 
       if (ctx.state === "suspended") {
         await ctx.resume();
@@ -164,28 +135,8 @@ export default function ChatNotificationToast() {
   };
 
   const playNotificationSound = async () => {
-    try {
-      if (!audioRef.current) {
-        await synthesizeBellSound();
-        return;
-      }
-
-      audioRef.current.currentTime = 0;
-
-      await audioRef.current.play();
-
-      console.log(
-        "Notification sound played"
-      );
-
-    } catch (err) {
-      console.warn(
-        "Audio blocked/failure:",
-        err
-      );
-
-      await synthesizeBellSound();
-    }
+    // Always synthesize — no remote dependency, no error events to leak.
+    await synthesizeBellSound();
   };
 
   useEffect(() => {
@@ -252,6 +203,13 @@ export default function ChatNotificationToast() {
 
                 // Only show toast popup when not on the active chat page to keep view clean
                 if (pathname !== "/chat") {
+                  const productCount = current.products ? Object.keys(current.products).length : 0;
+                  const displayProductTitle = productCount > 1 
+                    ? `${productCount} products`
+                    : (current.products && current.activeListingId && current.products[current.activeListingId]?.title)
+                      ? current.products[current.activeListingId].title
+                      : current.productTitle || "New message";
+
                   setToast({
                     id: threadId,
                     senderName:
@@ -259,9 +217,9 @@ export default function ChatNotificationToast() {
                     messageText:
                       current.lastMessage,
                     productTitle:
-                      current.productTitle,
+                      displayProductTitle,
                     productId:
-                      current.productId,
+                      current.activeListingId || current.productId || "",
                   });
 
                   setTimeout(() => {
@@ -275,6 +233,9 @@ export default function ChatNotificationToast() {
 
         previousChatsRef.current =
           chats;
+      },
+      (error) => {
+        console.warn("[toast] chats listener error:", error?.message || error);
       }
     );
 

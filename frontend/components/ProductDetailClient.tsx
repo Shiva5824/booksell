@@ -16,7 +16,6 @@ import {
   Image as ImageIcon,
   MapPin,
   MessageCircle,
-  Phone,
   Share2,
   ShieldCheck,
   Stethoscope,
@@ -99,22 +98,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   }, [seller, user, dbUser]);
 
   // Clean WhatsApp number and format
-  const whatsappUrl = useMemo(() => {
-    if (!seller || !seller.phone) return null;
-    
-    // Clean all non-digit characters
-    let cleaned = seller.phone.replace(/\D/g, "");
-    
-    // If it's a standard Indian phone number without country code (10 digits), prepend 91
-    if (cleaned.length === 10) {
-      cleaned = `91${cleaned}`;
-    }
-    
-    const text = encodeURIComponent(
-      `Hi ${seller.name || "there"}, I saw your listing for "${product.title}" on SellChey. Is it still available?`
-    );
-    return `https://wa.me/${cleaned}?text=${text}`;
-  }, [seller, product.title]);
+  // NOTE: WhatsApp deep-link removed. Contact details are unlocked only after
+  // a deal is accepted in chat (offer/counter/accept flow).
 
   // Initialize isSaved from user's favorites list
   useEffect(() => {
@@ -497,22 +482,9 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       <MessageCircle size={20} className="stroke-[2.5]" />
                       Message on Chat
                     </Link>
-
-                    {whatsappUrl ? (
-                      <a
-                        href={whatsappUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 font-bold text-white shadow-soft hover:shadow-glow-primary/10 transition-all duration-300 hover:bg-[#20ba59] active:scale-[0.98]"
-                      >
-                        <Phone size={20} className="fill-white stroke-none" />
-                        Chat on WhatsApp
-                      </a>
-                    ) : (
-                      <div className="w-full py-3.5 text-center text-xs font-bold text-ink-tertiary bg-surface-tertiary rounded-xl border border-dashed border-border/10">
-                        Seller WhatsApp not available
-                      </div>
-                    )}
+                    <p className="text-[11px] font-medium text-ink-tertiary text-center px-3">
+                      Negotiate the price in chat. Contact details unlock once a deal is accepted.
+                    </p>
                   </>
                 )}
               </div>
@@ -746,22 +718,9 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       <MessageCircle size={20} className="stroke-[2.5]" />
                       Message on Chat
                     </Link>
-
-                    {whatsappUrl ? (
-                      <a
-                        href={whatsappUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-4 font-bold text-white shadow-soft hover:shadow-glow-primary/10 transition-all duration-300 hover:bg-[#20ba59] active:scale-[0.98]"
-                      >
-                        <Phone size={20} className="fill-white stroke-none" />
-                        Chat on WhatsApp
-                      </a>
-                    ) : (
-                      <div className="w-full py-3.5 text-center text-xs font-bold text-ink-tertiary bg-surface-tertiary rounded-xl border border-dashed border-border/10">
-                        Seller WhatsApp not available
-                      </div>
-                    )}
+                    <p className="text-[11px] font-medium text-ink-tertiary text-center px-3">
+                      Negotiate the price in chat. Contact details unlock once a deal is accepted.
+                    </p>
                   </>
                 )}
               </div>

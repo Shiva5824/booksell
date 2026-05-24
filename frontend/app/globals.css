@@ -279,3 +279,30 @@ html.light ::-webkit-scrollbar-thumb:hover {
   animation: highlight-flash 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border-radius: 16px;
 }
+
+/* Custom system message styling */
+.system-message {
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.system-message::before,
+.system-message::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.2;
+}
+
+.system-message::before {
+  right: 100%;
+  margin-right: 8px;
+}
+
+.system-message::after {
+  left: 100%;
+  margin-left: 8px;
+}
