@@ -47,7 +47,12 @@ export interface ProductFilters {
   q?: string;
   college?: string;
   category?: ProductCategory | "";
+  condition?: ProductCondition | "";
+  status?: "active" | "sold" | "";
   min?: string;
   max?: string;
-  sort?: "newest" | "price_asc" | "price_desc";
+  sort?: "newest" | "price_asc" | "price_desc" | "nearest";
+  /** Internal: when sort === "nearest", user's coordinates (lat/lng). */
+  userLat?: number;
+  userLng?: number;
 }

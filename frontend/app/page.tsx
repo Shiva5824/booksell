@@ -9,11 +9,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
-import SearchBar from "@/components/SearchBar";
+import FilterBar from "@/components/FilterBar";
 import HeroCarousel from "@/components/HeroCarousel";
+import CtaCarousel from "@/components/CtaCarousel";
 import { getProducts, getFavorites, toggleFavorite } from "@/services/api";
 import { getSiteContact } from "@/services/site";
 import { useAuth } from "@/components/AuthProvider";
+import { haversineKm } from "@/lib/useUserLocation";
 import type { Product, ProductFilters } from "@/lib/types";
 
 const staggerContainer: any = {
@@ -96,8 +98,30 @@ export default function HomePage() {
 
   useEffect(() => {
     setLoadingProducts(true);
-    getProducts(filters).then((data) => {
-      setProducts(data);
+    // Strip client-only filter keys before hitting the API. The backend has
+    // no spatial query for "nearest"; we sort that client-side below using
+    // the lat/lng we keep in filters.
+    const apiFilters: any = { ...filters };
+    if (apiFilters.sort === "nearest") apiFilters.sort = "newest";
+    delete apiFilters.userLat;
+    delete apiFilters.userLng;
+
+    getProducts(apiFilters).then((data: Product[]) => {
+      let list = data;
+      if (filters.sort === "nearest" && filters.userLat != null && filters.userLng != null) {
+        const u = { latitude: filters.userLat, longitude: filters.userLng };
+        list = [...data].sort((a, b) => {
+          const aHas = !!(a.location && typeof a.location.latitude === "number");
+          const bHas = !!(b.location && typeof b.location.latitude === "number");
+          if (!aHas && !bHas) return 0;
+          if (!aHas) return 1; // products without coords sink to the bottom
+          if (!bHas) return -1;
+          const da = haversineKm(u, { latitude: a.location!.latitude, longitude: a.location!.longitude });
+          const db = haversineKm(u, { latitude: b.location!.latitude, longitude: b.location!.longitude });
+          return da - db;
+        });
+      }
+      setProducts(list);
       setLoadingProducts(false);
     });
   }, [filters]);
@@ -251,7 +275,7 @@ export default function HomePage() {
 
       {/* ── Listings ── */}
       <section id="listings" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
-        <SearchBar
+        <FilterBar
           filters={filters}
           resultCount={products.length}
           onChange={(nextFilters) => {
@@ -266,7 +290,14 @@ export default function HomePage() {
             <h2 className="mt-1.5 text-2xl font-black tracking-tight sm:text-3xl sm:text-4xl">Trending Listings</h2>
             <p className="mt-1.5 text-sm font-medium text-ink-secondary sm:text-base">
               Sorted by{" "}
-              {filters.sort === "price_asc" ? "lowest price" : filters.sort === "price_desc" ? "highest price" : "newest arrivals"}.
+              {filters.sort === "price_asc"
+                ? "lowest price"
+                : filters.sort === "price_desc"
+                  ? "highest price"
+                  : filters.sort === "nearest"
+                    ? "nearest listings"
+                    : "newest arrivals"}
+              .
             </p>
           </div>
           <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black shadow-soft dark:bg-white/10">
@@ -288,14 +319,32 @@ export default function HomePage() {
               viewport={{ once: true }}
               className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 xl:gap-7"
             >
-              {visibleProducts.map((product) => (
-                <ProductCard
-                  key={product._id}
-                  product={product}
-                  isFavorited={favoritedIds.has(product._id)}
-                  onToggleFavorite={user ? handleToggleFavorite : undefined}
-                />
-              ))}
+              {visibleProducts.map((product) => {
+                // Compute distance only when sorting by nearest, so cards in
+                // other sorts stay clean.
+                let distanceKm: number | null = null;
+                if (
+                  filters.sort === "nearest" &&
+                  filters.userLat != null &&
+                  filters.userLng != null &&
+                  product.location &&
+                  typeof product.location.latitude === "number"
+                ) {
+                  distanceKm = haversineKm(
+                    { latitude: filters.userLat, longitude: filters.userLng },
+                    { latitude: product.location.latitude, longitude: product.location.longitude },
+                  );
+                }
+                return (
+                  <ProductCard
+                    key={product._id}
+                    product={product}
+                    isFavorited={favoritedIds.has(product._id)}
+                    onToggleFavorite={user ? handleToggleFavorite : undefined}
+                    distanceKm={distanceKm}
+                  />
+                );
+              })}
             </motion.div>
 
             {visibleProducts.length < products.length && (
@@ -400,11 +449,7 @@ export default function HomePage() {
                 <ArrowRight size={18} />
               </a>
             </div>
-            <img
-              src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?q=80&w=1400&auto=format&fit=crop"
-              alt="Stack of books"
-              className="hidden h-[280px] w-full rounded-[24px] object-cover shadow-2xl md:block lg:h-[360px]"
-            />
+            <CtaCarousel />
           </div>
         </div>
       </section>

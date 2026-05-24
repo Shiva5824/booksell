@@ -7,18 +7,21 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BadgeIndianRupee, BookOpen, Clock3, Cpu, FlaskConical,
-  Heart, Image as ImageIcon, MapPin, MessageCircle,
+  Heart, Image as ImageIcon, MapPin, MessageCircle, Navigation,
   UserRound, Stethoscope,
 } from "lucide-react";
 import type { Product, User } from "@/lib/types";
+import { formatDistance } from "@/lib/useUserLocation";
 
 interface ProductCardProps {
   product: Product;
   isFavorited?: boolean;
   onToggleFavorite?: (productId: string) => void;
+  /** Distance to listing in kilometers (when sorting by nearest). */
+  distanceKm?: number | null;
 }
 
-export default function ProductCard({ product, isFavorited = false, onToggleFavorite }: ProductCardProps) {
+export default function ProductCard({ product, isFavorited = false, onToggleFavorite, distanceKm }: ProductCardProps) {
   const router = useRouter();
   const sold = product.status === "sold";
 
@@ -126,6 +129,12 @@ export default function ProductCard({ product, isFavorited = false, onToggleFavo
           {product.condition && (
             <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-black text-orange-500 shadow-soft backdrop-blur">
               {product.condition}
+            </span>
+          )}
+          {typeof distanceKm === "number" && (
+            <span className="flex items-center gap-1 rounded-full bg-slate-900/90 px-2.5 py-1 text-[11px] font-black text-white shadow-soft backdrop-blur">
+              <Navigation size={10} />
+              {formatDistance(distanceKm)}
             </span>
           )}
         </div>

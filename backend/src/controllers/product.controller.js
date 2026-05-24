@@ -7,7 +7,7 @@ import { formatValidationError } from "../utils/validation.util.js";
  */
 export async function listProducts(req, res) {
   try {
-    const { sort = "newest", category, condition, college, minPrice, maxPrice, search } = req.query;
+    const { sort = "newest", category, condition, college, minPrice, maxPrice, search, status } = req.query;
 
     let query = { isAdminDisabled: { $ne: true } };
 
@@ -29,6 +29,12 @@ export async function listProducts(req, res) {
     // College filter
     if (college && typeof college === "string" && college.trim() !== "") {
       query.college = college;
+    }
+
+    // Status filter (active / sold). When omitted we return both so the
+    // marketplace shows recently sold items as well.
+    if (status && typeof status === "string" && ["active", "sold"].includes(status)) {
+      query.status = status;
     }
 
     // Price range filter
