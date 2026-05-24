@@ -122,25 +122,30 @@ export default function ProductCard({ product, isFavorited = false, onToggleFavo
 
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none" />
 
-        <div className="absolute left-3 top-3 z-20 flex gap-2">
-          <span className={`rounded-full px-3 py-1 text-xs font-black ${sold ? "bg-white text-ink-secondary border border-border/10" : "bg-orange-500 text-white shadow-soft"}`}>
+        {/* Top-left badges. Wraps to a second line on small screens so the
+            "Available", "condition", and distance pills never collide with
+            the image-counter pill in the top-right. */}
+        <div className="absolute left-2 right-12 top-2 z-20 flex flex-wrap gap-1 sm:left-3 sm:right-14 sm:top-3 sm:gap-2">
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-black sm:px-3 sm:py-1 sm:text-xs ${sold ? "bg-white text-ink-secondary border border-border/10" : "bg-orange-500 text-white shadow-soft"}`}>
             {sold ? "Sold Out" : "Available"}
           </span>
           {product.condition && (
-            <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-black text-orange-500 shadow-soft backdrop-blur">
+            <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-orange-500 shadow-soft backdrop-blur sm:px-3 sm:py-1 sm:text-xs">
               {product.condition}
             </span>
           )}
           {typeof distanceKm === "number" && (
-            <span className="flex items-center gap-1 rounded-full bg-slate-900/90 px-2.5 py-1 text-[11px] font-black text-white shadow-soft backdrop-blur">
-              <Navigation size={10} />
+            <span className="flex items-center gap-0.5 rounded-full bg-slate-900/90 px-2 py-0.5 text-[10px] font-black text-white shadow-soft backdrop-blur sm:gap-1 sm:px-2.5 sm:py-1 sm:text-[11px]">
+              <Navigation size={9} className="sm:hidden" />
+              <Navigation size={10} className="hidden sm:inline" />
               {formatDistance(distanceKm)}
             </span>
           )}
         </div>
 
-        <span className="absolute right-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-ink shadow-soft backdrop-blur">
-          <ImageIcon size={13} />
+        <span className="absolute right-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-ink shadow-soft backdrop-blur sm:right-3 sm:top-3 sm:gap-1.5 sm:px-3 sm:py-1 sm:text-xs">
+          <ImageIcon size={11} className="sm:hidden" />
+          <ImageIcon size={13} className="hidden sm:inline" />
           {product.images.length}
         </span>
 
