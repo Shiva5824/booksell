@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { onAuthStateChanged, User, signOut, sendEmailVerification } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { getCurrentUser } from "@/services/api";
+import { getCurrentUser, warmUpBackend } from "@/services/api";
 import { Mail, Loader2, LogOut, RefreshCw } from "lucide-react";
 
 interface AuthContextType {
@@ -27,6 +27,10 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [dbUser, setDbUser] = useState<any | null>(null);
+  // `loading` only tracks whether Firebase has resolved its initial auth
+  // state. We do NOT block rendering on the dbUser fetch — that happens in
+  // the background so public pages (homepage, browse, product detail) load
+  // instantly even when the backend is cold-starting on Render.
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
@@ -53,24 +57,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Wake up the backend as soon as the app loads so subsequent calls
+    // don't pay the cold-start tax.
+    warmUpBackend();
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true);
       if (firebaseUser) {
         const token = await firebaseUser.getIdToken();
         localStorage.setItem("token", token);
         setUser(firebaseUser);
-        
-        // Only sync database user if email is verified (for email auth)
+
+        // Resolve the loading gate immediately so the UI can render.
+        // Fetch the dbUser in the background; components that need it
+        // already handle its absence gracefully.
         const isEmailAuth = firebaseUser.providerData[0]?.providerId === "password";
-        if (!isEmailAuth || firebaseUser.emailVerified) {
-          await fetchDbUser();
+        const shouldFetch = !isEmailAuth || firebaseUser.emailVerified;
+        setLoading(false);
+        if (shouldFetch) {
+          // Fire-and-forget. Setting state inside is safe.
+          fetchDbUser();
         }
       } else {
         localStorage.removeItem("token");
         setUser(null);
         setDbUser(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -115,17 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isEmailAuth = user?.providerData[0]?.providerId === "password";
   const needsVerification = user && isEmailAuth && !user.emailVerified;
 
-  if (loading) {
-    return (
-      <main className="grid min-h-screen place-items-center bg-background text-ink">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="animate-spin text-primary animate-duration-1000" size={40} />
-          <p className="text-sm font-bold text-ink-secondary">Loading profile...</p>
-        </div>
-      </main>
-    );
-  }
-
+  // Email-verification gate is the only screen that needs to take over the
+  // whole tree; everything else renders immediately. The brief delay while
+  // Firebase initializes from IndexedDB is short enough that public pages
+  // can render in their unauthenticated state without a flash of bad UI.
   if (needsVerification) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">

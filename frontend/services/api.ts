@@ -2,10 +2,41 @@ import axios from "axios";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
+// Apply a global axios timeout so any call across the codebase has an
+// upper bound. Render's free tier can take 30–60s on a cold start, so we
+// allow 35s to give the dyno a chance to wake while still failing rather
+// than hanging forever if the backend is genuinely down.
+axios.defaults.timeout = 35_000;
+
+// Shared axios instance with the same baseURL+timeout for new code that
+// wants to opt into the cleaner pattern.
+export const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 35_000,
+});
+
 const getAuthHeader = () => {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
+
+/**
+ * Pings the backend's /health endpoint to wake up Render free-tier dynos
+ * before the user starts triggering real API calls. Fire-and-forget; failure
+ * is fine because real calls will still go through (just slower).
+ */
+let _warmed = false;
+export function warmUpBackend(): void {
+  if (_warmed || typeof window === "undefined") return;
+  _warmed = true;
+  // Don't await — we just want to nudge the dyno awake. 30s timeout because
+  // Render cold starts can take that long.
+  apiClient
+    .get("/health", { timeout: 30_000 })
+    .catch(() => {
+      _warmed = false; // allow a retry on next call
+    });
+}
 
 // ===== PRODUCT ENDPOINTS =====
 
